@@ -1,0 +1,15 @@
+{
+  "name": "TransporteBan",
+  "short_name": "TransporteBan",
+  "description": "Viaja con confianza entre Isabel López y Sabanalarga.",
+  "lang": "es-CO",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F5F9FF",
+  "theme_color": "#1558D6",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -260,7 +260,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .driver-summary > span, .admin-counts > span { min-height: 48px; display: inline-flex; align-items: center; gap: 9px; padding: 10px 14px; border: 1px solid #dce8f7; border-radius: 14px; background: #f5f9ff; color: var(--brand-dark); font-weight: 750; }
 .driver-summary svg, .admin-counts svg { color: var(--brand); }
 .driver-trip-list, .admin-user-list { display: grid; gap: 16px; }
-.driver-trip-card, .admin-invite-card { padding: 19px; border: 1px solid #e3ebf5; border-radius: 20px; background: #fff; box-shadow: 0 8px 24px #12345a0a; }
+.driver-trip-card, .admin-driver-card { padding: 19px; border: 1px solid #e3ebf5; border-radius: 20px; background: #fff; box-shadow: 0 8px 24px #12345a0a; }
 .driver-trip-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
 .driver-trip-card .reservation-details { margin: 13px 0; }
 .driver-empty-passengers { margin: 15px 0 0; color: #647995; }
@@ -276,15 +276,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .button-whatsapp:hover { background: #0c7541; }
 .button-secondary { min-height: 44px; padding: 9px 13px; border: 1px solid #dce5f0; border-radius: 12px; background: #fff; color: #566a82; font-weight: 750; }
 .button-secondary:disabled, .button:disabled { opacity: .65; cursor: not-allowed; }
-.admin-invite-card { margin-top: 20px; background: #f9fbff; }
-.admin-invite-card h2, .admin-users-section h2 { display: flex; align-items: center; gap: 9px; margin: 0; color: var(--brand-dark); font-size: 20px; }
-.admin-invite-card h2 svg { color: var(--brand); }
-.admin-invite-card > p { margin: 9px 0 17px; color: #5b708b; line-height: 1.5; }
-.admin-invite-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
-.admin-invite-form label { display: grid; align-content: start; gap: 7px; color: var(--brand-dark); font-weight: 700; }
-.admin-invite-form label:nth-child(3), .admin-invite-form button { grid-column: 1 / -1; }
-.admin-invite-form input { width: 100%; min-height: 48px; padding: 0 13px; border: 1px solid #d5e0ee; border-radius: 12px; background: #fff; color: #172f4e; font: inherit; font-size: 16px; }
-.admin-invite-form input:focus { outline: 3px solid #1558d626; border-color: var(--brand); }
+.admin-driver-card { margin-top: 20px; background: #f9fbff; }
+.admin-driver-card h2, .admin-users-section h2 { display: flex; align-items: center; gap: 9px; margin: 0; color: var(--brand-dark); font-size: 20px; }
+.admin-driver-card h2 svg { color: var(--brand); }
+.admin-driver-card > p { margin: 9px 0 17px; color: #5b708b; line-height: 1.5; }
+.admin-driver-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.admin-driver-form label { display: grid; align-content: start; gap: 7px; color: var(--brand-dark); font-weight: 700; }
+.admin-driver-form button { grid-column: 1 / -1; }
+.admin-driver-form input { width: 100%; min-height: 48px; padding: 0 13px; border: 1px solid #d5e0ee; border-radius: 12px; background: #fff; color: #172f4e; font: inherit; font-size: 16px; }
+.admin-driver-form input:focus { outline: 3px solid #1558d626; border-color: var(--brand); }
 .field-error { color: #b43127; font-size: 14px; font-weight: 600; }
 .admin-users-section { margin-top: 26px; }
 .admin-users-section h2 { margin-bottom: 14px; }
@@ -304,9 +304,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .driver-passenger-actions { justify-content: stretch; }
   .driver-passenger-actions > * { flex: 1; justify-content: center; }
   .driver-passenger-actions .status-tag { flex: initial; justify-content: flex-start; }
-  .driver-trip-card, .admin-invite-card { padding: 15px; }
-  .admin-invite-form { grid-template-columns: 1fr; }
-  .admin-invite-form label:nth-child(3), .admin-invite-form button { grid-column: auto; }
+  .driver-trip-card, .admin-driver-card { padding: 15px; }
+  .admin-driver-form { grid-template-columns: 1fr; }
+  .admin-driver-form button { grid-column: auto; }
   .admin-user-card { align-items: flex-start; flex-wrap: wrap; }
   .admin-role { margin-left: 57px; }
 }

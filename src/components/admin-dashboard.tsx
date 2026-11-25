@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, BusFront, LoaderCircle, Mail, MessageCircle, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, BusFront, LoaderCircle, MessageCircle, ShieldCheck, UserRoundPlus, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/configured";
 
@@ -17,23 +17,26 @@ type RegisteredProfile = {
   created_at: string;
 };
 
-const inviteSchema = z.object({
+const driverSchema = z.object({
   fullName: z.string().trim().min(2, "Escribe el nombre completo.").max(100),
   phone: z.string().trim().min(7, "Escribe un teléfono válido.").max(20),
-  email: z.string().trim().email("Escribe un correo válido.").max(254),
+  username: z.string().trim().min(3, "Usa al menos 3 caracteres.").max(30)
+    .regex(/^[a-zA-Z0-9._-]+$/, "Usa solo letras, números, punto, guion o guion bajo.")
+    .refine((value) => value.toLowerCase() !== "admin", "Ese usuario está reservado."),
+  password: z.string().min(8, "Usa al menos 8 caracteres.").max(72, "La contraseña es demasiado larga."),
 });
-type InviteValues = z.infer<typeof inviteSchema>;
+type DriverValues = z.infer<typeof driverSchema>;
 
 export function AdminDashboard({ adminName }: { adminName: string }) {
   const supabase = useMemo(() => isSupabaseConfigured() ? createClient() : null, []);
   const [profiles, setProfiles] = useState<RegisteredProfile[]>([]);
   const [loading, setLoading] = useState(Boolean(supabase));
-  const [sending, setSending] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [notice, setNotice] = useState("");
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<InviteValues>({
-    resolver: zodResolver(inviteSchema),
-    defaultValues: { fullName: "", phone: "", email: "" },
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<DriverValues>({
+    resolver: zodResolver(driverSchema),
+    defaultValues: { fullName: "", phone: "", username: "", password: "" },
   });
 
   const loadProfiles = useCallback(async () => {
@@ -64,8 +67,8 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
     return () => { void supabase.removeChannel(channel); };
   }, [loadProfiles, supabase]);
 
-  async function inviteDriver(values: InviteValues) {
-    setSending(true);
+  async function createDriver(values: DriverValues) {
+    setCreating(true);
     setErrorMessage("");
     setNotice("");
     try {
@@ -78,14 +81,14 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
       if (!response.ok) {
         setErrorMessage(result.error ?? "No pudimos crear la cuenta. Inténtalo de nuevo.");
       } else {
-        setNotice(result.message ?? "Invitación enviada.");
+        setNotice(result.message ?? "La cuenta del conductor quedó creada.");
         reset();
         await loadProfiles();
       }
     } catch {
       setErrorMessage("No pudimos conectar con el servidor. Revisa tu conexión e inténtalo otra vez.");
     } finally {
-      setSending(false);
+      setCreating(false);
     }
   }
 
@@ -107,14 +110,15 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
         {notice && <p className="form-message success" role="status">{notice}</p>}
         {errorMessage && <p className="form-message error" role="alert">{errorMessage}</p>}
 
-        <section className="admin-invite-card" aria-labelledby="invite-heading">
-          <h2 id="invite-heading"><ShieldCheck size={21} /> Invitar a un conductor</h2>
-          <p>Enviaremos un correo para que la persona active su cuenta y elija una contraseña.</p>
-          <form className="admin-invite-form" onSubmit={handleSubmit(inviteDriver)} noValidate>
+        <section className="admin-driver-card" aria-labelledby="driver-heading">
+          <h2 id="driver-heading"><ShieldCheck size={21} /> Crear cuenta de conductor</h2>
+          <p>Elige el usuario y la contraseña para entregárselos al conductor. No enviaremos invitaciones por correo.</p>
+          <form className="admin-driver-form" onSubmit={handleSubmit(createDriver)} noValidate>
             <label>Nombre completo<input autoComplete="name" placeholder="Ej. María Pérez" {...register("fullName")} />{errors.fullName && <small className="field-error">{errors.fullName.message}</small>}</label>
             <label>Teléfono<input autoComplete="tel" inputMode="tel" placeholder="Ej. 300 123 4567" {...register("phone")} />{errors.phone && <small className="field-error">{errors.phone.message}</small>}</label>
-            <label>Correo electrónico<input autoComplete="email" inputMode="email" placeholder="nombre@correo.com" type="email" {...register("email")} />{errors.email && <small className="field-error">{errors.email.message}</small>}</label>
-            <button className="button button-primary" disabled={sending} type="submit">{sending ? <><LoaderCircle className="spin" size={18} /> Enviando...</> : <><Mail size={18} /> Enviar invitación</>}</button>
+            <label>Usuario<input autoComplete="off" placeholder="Ej. conductor1" {...register("username")} />{errors.username && <small className="field-error">{errors.username.message}</small>}</label>
+            <label>Contraseña inicial<input autoComplete="new-password" placeholder="Mínimo 8 caracteres" type="password" {...register("password")} />{errors.password && <small className="field-error">{errors.password.message}</small>}</label>
+            <button className="button button-primary" disabled={creating} type="submit">{creating ? <><LoaderCircle className="spin" size={18} /> Creando cuenta...</> : <><UserRoundPlus size={18} /> Crear cuenta</>}</button>
           </form>
         </section>
 

@@ -8,7 +8,10 @@ export const runtime = "nodejs";
 const driverSchema = z.object({
   fullName: z.string().trim().min(2, "Escribe el nombre completo.").max(100),
   phone: z.string().trim().min(7, "Escribe un teléfono válido.").max(20),
-  email: z.string().trim().email("Escribe un correo válido.").max(254),
+  username: z.string().trim().min(3, "Usa al menos 3 caracteres.").max(30)
+    .regex(/^[a-zA-Z0-9._-]+$/, "El usuario tiene caracteres no permitidos.")
+    .refine((value) => value.toLowerCase() !== "admin", "Ese usuario está reservado."),
+  password: z.string().min(8, "Usa al menos 8 caracteres.").max(72, "La contraseña es demasiado larga."),
 });
 
 export async function POST(request: Request) {
@@ -45,35 +48,47 @@ export async function POST(request: Request) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!serviceRoleKey || !supabaseUrl) {
-    return NextResponse.json({ error: "Falta configurar SUPABASE_SERVICE_ROLE_KEY en el servidor para administrar invitaciones." }, { status: 503 });
+    return NextResponse.json({ error: "Falta configurar la llave privada de Supabase para crear cuentas." }, { status: 503 });
   }
 
   const adminClient = createSupabaseAdminClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
-    parsed.data.email,
-    { data: { full_name: parsed.data.fullName, phone: parsed.data.phone } },
-  );
-  if (inviteError) {
-    return NextResponse.json({ error: "No pudimos enviar la invitación. Verifica si el correo ya tiene una cuenta." }, { status: 400 });
+  const username = parsed.data.username.toLowerCase();
+  const { data: created, error: createError } = await adminClient.auth.admin.createUser({
+    email: `${username}@transporteban.test`,
+    password: parsed.data.password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: parsed.data.fullName,
+      phone: parsed.data.phone,
+      username,
+    },
+  });
+  if (createError) {
+    if (/already registered|already been registered/i.test(createError.message)) {
+      return NextResponse.json({ error: "Ese usuario ya existe. Escribe otro." }, { status: 409 });
+    }
+    return NextResponse.json({ error: "No pudimos crear la cuenta. Revisa los datos e inténtalo otra vez." }, { status: 400 });
   }
-  if (!invited.user) {
-    return NextResponse.json({ error: "Supabase no devolvió la cuenta creada. Revisa los usuarios antes de intentarlo otra vez." }, { status: 502 });
+  if (!created.user) {
+    return NextResponse.json({ error: "Supabase no devolvió la cuenta creada. Revisa las cuentas antes de volver a intentarlo." }, { status: 502 });
   }
 
   const { error: roleError } = await adminClient
     .from("profiles")
     .update({ role: "driver" })
-    .eq("id", invited.user.id);
+    .eq("id", created.user.id);
   if (roleError) {
-    const { error: cleanupError } = await adminClient.auth.admin.deleteUser(invited.user.id);
+    const { error: cleanupError } = await adminClient.auth.admin.deleteUser(created.user.id);
     return NextResponse.json({
       error: cleanupError
-        ? "La invitación se creó, pero no se pudo asignar el rol. Revisa la cuenta en Supabase antes de volver a invitar."
-        : "No pudimos asignar el rol de conductor; se retiró la invitación. Inténtalo otra vez.",
+        ? "La cuenta se creó, pero no se pudo asignar el rol. Revisa Supabase antes de volver a intentarlo."
+        : "No pudimos asignar el rol de conductor; se retiró la cuenta. Inténtalo otra vez.",
     }, { status: 500 });
   }
 
-  return NextResponse.json({ message: "Invitación enviada. El conductor podrá crear su contraseña desde el correo." }, { status: 201 });
+  return NextResponse.json({
+    message: `Cuenta creada. Usuario: ${username}. Entrégale la contraseña inicial al conductor.`,
+  }, { status: 201 });
 }

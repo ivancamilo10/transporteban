@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 
 const schemas = {
   login: z.object({
-    email: z.string().email("Escribe un correo válido."),
+    identifier: z.string().trim().min(1, "Escribe tu usuario o correo."),
     password: z.string().min(1, "Escribe tu contraseña."),
   }),
   register: z.object({
@@ -95,8 +95,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         if (result.data.session) router.push("/inicio");
       } else if (mode === "login") {
         const input = schemas.login.parse(values);
+        const identifier = input.identifier;
+        const email = identifier.includes("@")
+          ? identifier
+          : `${identifier.toLowerCase()}@transporteban.test`;
         const result = await supabase.auth.signInWithPassword({
-          email: input.email,
+          email,
           password: input.password,
         });
         if (result.error) throw result.error;
@@ -145,9 +149,15 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               </Field>
             </>
           )}
-          <Field label="Correo electrónico" error={"email" in errors ? errors.email?.message : undefined}>
-            <input type="email" autoComplete="email" placeholder="tunombre@correo.com" {...register("email")} />
-          </Field>
+          {mode === "login" ? (
+            <Field label="Usuario o correo electrónico" error={"identifier" in errors ? errors.identifier?.message : undefined}>
+              <input type="text" autoComplete="username" placeholder="admin o tu correo" {...register("identifier")} />
+            </Field>
+          ) : (
+            <Field label="Correo electrónico" error={"email" in errors ? errors.email?.message : undefined}>
+              <input type="email" autoComplete="email" placeholder="tunombre@correo.com" {...register("email")} />
+            </Field>
+          )}
           {mode !== "reset" && (
             <Field label="Contraseña" error={"password" in errors ? errors.password?.message : undefined}>
               <input type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder={mode === "login" ? "Tu contraseña" : "Mínimo 8 caracteres"} {...register("password")} />
@@ -178,7 +188,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 function friendlyError(error: string) {
-  if (/invalid login credentials/i.test(error)) return "El correo o la contraseña no coinciden. Verifícalos e inténtalo de nuevo.";
+  if (/invalid login credentials/i.test(error)) return "El usuario o la contraseña no coinciden. Verifícalos e inténtalo de nuevo.";
   if (/user already registered/i.test(error)) return "Ya existe una cuenta con ese correo. Prueba iniciar sesión.";
   if (/email not confirmed/i.test(error)) return "Confirma tu correo desde el enlace que te enviamos antes de iniciar sesión.";
   if (/fetch|network/i.test(error)) return "No logramos conectarnos. Revisa tu internet e inténtalo de nuevo.";

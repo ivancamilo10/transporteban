@@ -45,7 +45,9 @@ where id = (
 );
 ```
 
-No hay un usuario ni una contraseña de administrador predeterminados. Usa el correo y la contraseña que tú elegiste al registrarte; nunca compartas una contraseña inicial común. El administrador puede invitar conductores desde `/admin`; a cada conductor se le envía un correo seguro para crear su propia contraseña. El registro público siempre crea pasajeros y no permite elevar roles.
+No hay un usuario ni una contraseña de administrador predeterminados. Usa el correo y la contraseña que tú elegiste al registrarte; nunca compartas una contraseña inicial común. Desde `/admin`, el administrador crea directamente la cuenta del conductor con nombre, teléfono, usuario y contraseña inicial. El registro público siempre crea pasajeros y no permite elevar roles.
+
+En el inicio de sesión puedes ingresar correo o usuario. Los usuarios creados desde `/admin` se resuelven internamente al dominio `.test`, que no recibe mensajes ni enlaces para recuperar contraseña; el administrador debe compartir la contraseña inicial directamente. Usa correos reales para las cuentas que necesiten recuperar contraseña.
 
 Para asignar manualmente el rol de conductor a una cuenta registrada:
 
@@ -74,7 +76,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-jwt
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` es la clave JWT privada `service_role`, solo se utiliza en el servidor para invitar conductores. Cópiala desde las API Keys del proyecto Supabase, no le pongas el prefijo `NEXT_PUBLIC_`, no la compartas ni la incluyas en Git y configúrala como variable privada en Vercel. Una clave `sb_secret_...` no reemplaza esta JWT para las operaciones de administración de Auth. Si alguna clave secreta se compartió públicamente, rótala desde Supabase antes de desplegar.
+`SUPABASE_SERVICE_ROLE_KEY` es la clave JWT privada `service_role`, solo se utiliza en el servidor para crear cuentas de conductores. Cópiala desde las API Keys del proyecto Supabase, no le pongas el prefijo `NEXT_PUBLIC_`, no la compartas ni la incluyas en Git y configúrala como variable privada en Vercel. Una clave `sb_secret_...` no reemplaza esta JWT para las operaciones de administración de Auth. Si alguna clave secreta se compartió públicamente, rótala desde Supabase antes de desplegar.
 
 Las notificaciones dentro de la app y los recordatorios programados funcionan con Supabase. El service worker y el registro de dispositivos preparan Web Push; para enviar notificaciones push fuera de la app también hace falta configurar un emisor de servidor y sus llaves VAPID.
 

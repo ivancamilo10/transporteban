@@ -126,7 +126,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .field select { min-height: 52px; width: 100%; padding: 0 13px; border: 1px solid #d6e1f0; border-radius: 13px; background: #fff; color: var(--brand-dark); font-size: 16px; }
 .swap-button { width: 44px; height: 44px; margin-bottom: 4px; display: grid; place-items: center; color: var(--brand); background: var(--brand-pale); border: 1px solid #d2e2f8; border-radius: 14px; box-shadow: 0 2px 0 #d5e4f7, 0 5px 12px #0b2e6f0c; cursor: pointer; }
 .swap-button:disabled { opacity: .45; cursor: not-allowed; }
-.date-field input { color-scheme: light; }
+.date-field { min-width: 0; }
+.date-field input { display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; color-scheme: light; }
 .weekend-tour-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px; margin: 20px 0 16px; padding: 15px; border: 1px solid #d6e5f8; border-radius: 17px; background: linear-gradient(120deg, #f3f8ff, #fff); }
 .weekend-tour-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: var(--brand-pale); color: var(--brand); }
 .weekend-tour-copy { display: grid; gap: 4px; min-width: 0; }
@@ -239,7 +240,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 600px) {
   .booking-shell { padding: 0 0 var(--safe-bottom); }
   .booking-card, .my-trips-card { min-height: 100dvh; padding: 16px 17px calc(28px + var(--safe-bottom)); border-radius: 0; border: 0; box-shadow: none; }
-  .booking-header, .booking-card, .my-trips-card, .booking-step, .route-fields, .weekend-tour-card { min-width: 0; }
+  .booking-header, .booking-card, .my-trips-card, .booking-step, .route-fields, .date-field, .weekend-tour-card { min-width: 0; }
   .booking-header { min-height: 48px; gap: 8px; }
   .booking-header .brand { min-width: 0; gap: 7px; }
   .booking-header .brand > span:last-child { min-width: 0; overflow-wrap: anywhere; font-size: 14px; }

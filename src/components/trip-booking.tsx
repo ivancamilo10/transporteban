@@ -40,7 +40,7 @@ const passengerSchema = z.object({
 });
 
 const boardingPointsByOrigin: Record<string, string[]> = {
-  "Isabel López": ["Colegio Bachillerato", "Cañaña", "CDI", "Tienda Boulevard", "El Guachi", "Otros"],
+  "Isabel López": ["Colegio Bachillerato", "Cañaña", "CDI", "CALLE NUEVA", "Tienda Boulevard", "El Guachi", "Otros"],
   Sabanalarga: ["Olímpica", "Hospital", "Centro", "Mercado", "D1 Cordialidad", "Otros"],
 };
 

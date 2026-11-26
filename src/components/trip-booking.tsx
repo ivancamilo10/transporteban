@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, ArrowUpDown, BusFront, Check, Clock3, LoaderCircle, MapPin, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpDown, BusFront, CalendarDays, Check, Clock3, LoaderCircle, MapPin, RefreshCw, ShieldCheck, Users } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -43,6 +43,8 @@ const boardingPointsByOrigin: Record<string, string[]> = {
   "Isabel López": ["Colegio Bachillerato", "Cañaña", "CDI", "Tienda Boulevard", "El Guachi", "Otros"],
   Sabanalarga: ["Olímpica", "Hospital", "Centro", "Mercado", "D1 Cordialidad", "Otros"],
 };
+
+const weekendTourDestinations = ["Santa Marta", "Cartagena", "Santa Verónica"];
 
 export function TripBooking({ passenger }: { passenger: Passenger }) {
   const supabase = useMemo(() => isSupabaseConfigured() ? createClient() : null, []);
@@ -101,8 +103,16 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
   );
   const selectedOrigin = routeOrigins.includes(origin) ? origin : routeOrigins[0] ?? "";
   const routeDestinations = useMemo(
-    () => Array.from(new Set(availableRoutes.filter((route) => route.origen === selectedOrigin).map((route) => route.destino))),
-    [availableRoutes, selectedOrigin],
+    () => {
+      const destinations = availableRoutes
+        .filter((route) => route.origen === selectedOrigin)
+        .map((route) => route.destino);
+      if (selectedOrigin === "Isabel López" && (weekday === 6 || weekday === 7)) {
+        destinations.push(...weekendTourDestinations);
+      }
+      return Array.from(new Set(destinations));
+    },
+    [availableRoutes, selectedOrigin, weekday],
   );
   const selectedDestination = routeDestinations.includes(destination) ? destination : routeDestinations[0] ?? "";
   const canSwapRoute = availableRoutes.some((route) => route.origen === selectedDestination && route.destino === selectedOrigin);
@@ -540,6 +550,17 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
     });
   }
 
+  function chooseWeekendTour(day: 6 | 7) {
+    const date = getNextWeekdayDate(day);
+    void changeSearch(() => {
+      setTravelDate(date);
+      setOrigin("Isabel López");
+      setDestination("Santa Marta");
+      setBoardingPoint("");
+      setOtherBoardingPoint("");
+    });
+  }
+
   const whatsappText = booking
     ? `Hola, tengo reserva en el viaje de las ${formatTime(booking.trip.fecha_salida)} de ${booking.trip.origen} a ${booking.trip.destino}. Mi puesto es el ${booking.seatNumber}.`
     : "";
@@ -623,9 +644,39 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                     </select>
                   </label>
                   <label className="field date-field"><span>Fecha del viaje</span>
-                    <input type="date" min={getBogotaDate()} value={travelDate} onChange={(event) => void changeSearch(() => setTravelDate(event.target.value))} />
+                    <input type="date" min={getBogotaDate()} value={travelDate} onChange={(event) => void changeSearch(() => {
+                      setTravelDate(event.target.value);
+                      setBoardingPoint("");
+                      setOtherBoardingPoint("");
+                    })} />
                   </label>
                 </div>
+                <section className="weekend-tour-card" aria-labelledby="weekend-tour-title">
+                  <div className="weekend-tour-icon"><CalendarDays size={21} /></div>
+                  <div className="weekend-tour-copy">
+                    <strong id="weekend-tour-title">Paseos de fin de semana</strong>
+                    <span>Santa Marta · Cartagena · Santa Verónica</span>
+                    <small>Sábado 1:00 p. m. · Domingo 6:00 a. m.</small>
+                  </div>
+                  <div className="weekend-tour-actions">
+                    <button className="button button-secondary" onClick={() => chooseWeekendTour(6)} type="button">Ver sábado</button>
+                    <button className="button button-primary" onClick={() => chooseWeekendTour(7)} type="button">Ver domingo</button>
+                  </div>
+                </section>
+                <label className="field boarding-point-search"><span>Punto de encuentro · {selectedOrigin}</span>
+                  <select value={selectedBoardingPointOption} onChange={(event) => {
+                    setBoardingPoint(event.target.value);
+                    setOtherBoardingPoint("");
+                    setFieldErrors((previous) => ({ ...previous, boardingPoint: "" }));
+                  }}>
+                    <option value="">Elige dónde te recogemos</option>
+                    {boardingPointOptions.map((point) => <option key={point} value={point}>{point}</option>)}
+                  </select>
+                  {boardingPoint === "Otros" && (
+                    <input placeholder="Escribe el punto de encuentro" value={otherBoardingPoint} onChange={(event) => setOtherBoardingPoint(event.target.value)} />
+                  )}
+                  {fieldErrors.boardingPoint && <small className="field-error">{fieldErrors.boardingPoint}</small>}
+                </label>
                 <div className="schedule-heading">
                   <div><h3>Horarios disponibles</h3><span>{formatLongDate(travelDate)}</span></div>
                   <button className="icon-text-button" onClick={() => void loadTrips()} type="button" aria-label="Actualizar horarios"><RefreshCw size={17} /> Actualizar</button>
@@ -639,7 +690,13 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                 {loading ? (
                   <div className="loading-card"><LoaderCircle className="spin" size={22} /> Buscando viajes...</div>
                 ) : trips.length === 0 ? (
-                  <div className="empty-state"><div className="empty-icon"><MapPin size={24} /></div><h3>No hay viajes para este día</h3><p>Prueba con otra fecha o cambia el sentido del viaje.</p></div>
+                  <div className="empty-state">
+                    <div className="empty-icon"><MapPin size={24} /></div>
+                    <h3>No hay viajes para este día</h3>
+                    <p>{weekendTourDestinations.includes(selectedDestination)
+                      ? "El paseo todavía no está cargado en los horarios del servicio. Actualiza la base de datos con la migración 202611250008_weekend_advance_booking.sql y vuelve a actualizar."
+                      : "Prueba con otra fecha o cambia el sentido del viaje."}</p>
+                  </div>
                 ) : (
                   <div className="trip-list">
                     {trips.map((trip) => {
@@ -729,20 +786,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                     <input autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
                     {fieldErrors.phone && <small className="field-error">{fieldErrors.phone}</small>}
                   </label>
-                  <label className="field"><span>Punto de encuentro · {selectedOrigin}</span>
-                    <select value={selectedBoardingPointOption} onChange={(event) => {
-                      setBoardingPoint(event.target.value);
-                      setOtherBoardingPoint("");
-                    }}>
-                      <option value="">Elige tu punto de encuentro</option>
-                      {boardingPointOptions.map((point) => <option key={point} value={point}>{point}</option>)}
-                    </select>
-                    {boardingPoint === "Otros" && (
-                      <input placeholder="Escribe el punto de encuentro" value={otherBoardingPoint} onChange={(event) => setOtherBoardingPoint(event.target.value)} />
-                    )}
-                    <small>Selecciona dónde te recogeremos.</small>
-                    {fieldErrors.boardingPoint && <small className="field-error">{fieldErrors.boardingPoint}</small>}
-                  </label>
+                  <div className="selected-summary"><span>Punto de encuentro</span><b>{selectedBoardingPoint}</b></div>
                 </div>
                 <div className="booking-action-row">
                   <Button variant="secondary" onClick={() => setStep(1)}><ArrowLeft size={17} /> Atrás</Button>
@@ -842,6 +886,14 @@ function getBogotaDate() {
   }).formatToParts(new Date());
   const part = (type: string) => parts.find((value) => value.type === type)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function getNextWeekdayDate(targetDay: 6 | 7) {
+  const today = new Date(`${getBogotaDate()}T12:00:00Z`);
+  const currentDay = today.getUTCDay() || 7;
+  const daysUntil = (targetDay - currentDay + 7) % 7 || 7;
+  today.setUTCDate(today.getUTCDate() + daysUntil);
+  return today.toISOString().slice(0, 10);
 }
 
 function getBogotaTime(value: string) {

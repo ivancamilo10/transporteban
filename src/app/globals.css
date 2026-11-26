@@ -124,6 +124,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .swap-button { width: 44px; height: 44px; margin-bottom: 4px; display: grid; place-items: center; color: var(--brand); background: var(--brand-pale); border: 1px solid #d2e2f8; border-radius: 14px; box-shadow: 0 2px 0 #d5e4f7, 0 5px 12px #0b2e6f0c; cursor: pointer; }
 .swap-button:disabled { opacity: .45; cursor: not-allowed; }
 .date-field input { color-scheme: light; }
+.weekend-tour-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px; margin: 20px 0 16px; padding: 15px; border: 1px solid #d6e5f8; border-radius: 17px; background: linear-gradient(120deg, #f3f8ff, #fff); }
+.weekend-tour-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: var(--brand-pale); color: var(--brand); }
+.weekend-tour-copy { display: grid; gap: 4px; min-width: 0; }
+.weekend-tour-copy strong { color: var(--brand-dark); }
+.weekend-tour-copy span { color: #536b8e; font-size: 14px; }
+.weekend-tour-copy small { color: #7185a0; font-size: 13px; }
+.weekend-tour-actions { display: flex; gap: 7px; }
+.weekend-tour-actions .button { min-height: 40px; padding: 0 11px; font-size: 13px; }
+.boarding-point-search { margin: 18px 0 22px; }
 .schedule-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 26px 0 12px; }
 .schedule-heading h3 { margin: 0; color: var(--brand-dark); font-size: 18px; }
 .schedule-heading span { display: block; margin-top: 5px; color: #6a7f9b; font-size: 14px; }
@@ -377,6 +386,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 @media (max-width: 600px) {
+  .weekend-tour-card { grid-template-columns: 40px minmax(0, 1fr); gap: 10px; padding: 13px; }
+  .weekend-tour-icon { width: 40px; height: 40px; }
+  .weekend-tour-actions { grid-column: 1 / -1; }
+  .weekend-tour-actions .button { flex: 1; }
   .tutorial-card { padding: 25px 19px 17px; }
   .notification-card { flex-wrap: wrap; }
   .notification-read { margin-left: 51px; }

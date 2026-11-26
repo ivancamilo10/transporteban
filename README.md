@@ -19,11 +19,12 @@ Aplicación mobile-first para administrar los viajes de una van en la ruta Isabe
    - `202611250005_updated_departure_schedule.sql`
    - `202611250006_saturday_half_day_schedule.sql`
    - `202611250007_weekend_sightseeing_routes.sql`
+   - `202611250008_weekend_advance_booking.sql`
 3. En **Project Settings → API**, copia la URL del proyecto y la clave `anon` pública.
 4. En **Authentication → URL Configuration**, configura la URL local `http://localhost:3000` y, al desplegar, agrega también el dominio de Vercel a Site URL y Redirect URLs.
 5. Si no quieres verificar correo para el registro, abre **Authentication → Providers → Email** y desactiva **Confirm email**. La aplicación conserva la sesión en almacenamiento del navegador y cookies seguras del servidor.
 
-La primera migración crea perfiles, configuración, vehículo y plantillas; activa RLS y asigna automáticamente a cada registro el rol `passenger`. Semilla 26 salidas entre semana: Isabel López sale cada hora en punto de 5:00 a. m. a 5:00 p. m.; Sabanalarga sale cada hora y media de 5:30 a. m. a 5:30 p. m. El sábado el servicio termina al mediodía: última salida a las 12:00 p. m. desde Isabel López y a las 11:30 a. m. desde Sabanalarga. Los precios se dejan sin definir para que el conductor los configure; no se inventan tarifas.
+La primera migración crea perfiles, configuración, vehículo y plantillas; activa RLS y asigna automáticamente a cada registro el rol `passenger`. Semilla 26 salidas entre semana: Isabel López sale cada hora en punto de 5:00 a. m. a 5:00 p. m.; Sabanalarga sale cada hora y media de 5:30 a. m. a 5:30 p. m. El sábado el servicio termina al mediodía: última salida a las 12:00 p. m. desde Isabel López y a las 11:30 a. m. desde Sabanalarga. La aplicación genera viajes hasta 30 días adelante y permite reservar dentro de ese periodo. Los precios se dejan sin definir para que el conductor los configure; no se inventan tarifas.
 
 La segunda migración crea viajes, puestos y reservas; instala funciones transaccionales para tomar, confirmar y cancelar un puesto; publica cambios de puestos y viajes en Supabase Realtime; y genera los viajes de los próximos siete días. También configura `pg_cron` para renovar los viajes cada día y liberar puestos temporales vencidos cada minuto.
 
@@ -31,7 +32,7 @@ La tercera migración agrega el rol administrador, permisos para que el conducto
 
 La cuarta migración agrega lista de espera con reserva temporal automática del puesto liberado, avisos dentro de la app y recordatorios programados una hora antes, calificaciones de viajes finalizados, y almacenamiento seguro de las suscripciones Web Push. El service worker recibe y muestra notificaciones push cuando un emisor del servidor está configurado.
 
-La quinta migración actualiza las plantillas existentes y mueve los viajes futuros generados a los horarios corregidos, sin cambiar viajes pasados ni los horarios personalizados que no coinciden con la semilla anterior. La sexta separa los horarios entre semana y sábado, reprograma los viajes futuros del sábado hasta el mediodía y cancela las salidas posteriores que ya se hubieran generado. La séptima agrega el itinerario de paseo por Santa Marta, Cartagena y Santa Verónica desde Isabel López, los sábados a la 1:00 p. m. (después del servicio local) y los domingos a las 6:00 a. m.; el precio queda sin definir. Puedes ajustar esos horarios y precios en `trip_templates`. Si ya ejecutaste `setup.sql` o las migraciones hasta la 006, ejecuta solamente `202611250007_weekend_sightseeing_routes.sql`; no vuelvas a ejecutar `setup.sql`.
+La quinta migración actualiza las plantillas existentes y mueve los viajes futuros generados a los horarios corregidos, sin cambiar viajes pasados ni los horarios personalizados que no coinciden con la semilla anterior. La sexta separa los horarios entre semana y sábado, reprograma los viajes futuros del sábado hasta el mediodía y cancela las salidas posteriores que ya se hubieran generado. La séptima agrega paseos independientes desde Isabel López a Santa Marta, Cartagena o Santa Verónica, los sábados a la 1:00 p. m. (después del servicio local) y los domingos a las 6:00 a. m.; el precio queda sin definir. La octava abre reservas con hasta 30 días de anticipación y genera los viajes futuros; ejecútala para habilitar los paseos en una instalación existente. Si ya ejecutaste `setup.sql` o las migraciones hasta la 007, ejecuta solamente `202611250008_weekend_advance_booking.sql`; no vuelvas a ejecutar `setup.sql`.
 
 ### Crear las cuentas de administrador y conductor
 

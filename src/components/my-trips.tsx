@@ -151,7 +151,7 @@ function BookingCard({ booking, cancelling, onCancel }: { booking: PassengerBook
         <span><CalendarDays size={17} /> {formatTripDate(trip.fecha_salida)}</span>
         <span><Clock3 size={17} /> {formatTripTime(trip.fecha_salida)}</span>
         <span><Users size={17} /> Puesto {booking.seat_number}</span>
-        <span><MapPin size={17} /> {booking.punto_de_abordaje}</span>
+        <span><MapPin size={17} /> {booking.punto_de_abordaje.toLocaleUpperCase("es-CO")}</span>
       </div>
       {trip.precio !== null && <p className="reservation-price">{formatMoney(Number(trip.precio))} <small>Pago al abordar</small></p>}
       <div className="reservation-footer">

@@ -240,7 +240,7 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
                               <span className="seat-pill">Puesto {booking.seat_number}</span>
                               <strong>{booking.passenger?.full_name ?? "Pasajero"}</strong>
                               <span>{booking.passenger?.phone ?? "Teléfono no disponible"}</span>
-                              <small><MapPin size={14} /> {booking.punto_de_abordaje}</small>
+                              <small><MapPin size={14} /> {booking.punto_de_abordaje.toLocaleUpperCase("es-CO")}</small>
                             </div>
                             <div className="driver-passenger-actions">
                               {booking.passenger && booking.passenger.phone && <a className="button button-whatsapp" href={whatsappUrl(booking.passenger.phone, booking.passenger.full_name, booking, trip)} target="_blank" rel="noreferrer"><MessageCircle size={17} /> WhatsApp</a>}

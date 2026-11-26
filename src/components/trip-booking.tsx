@@ -122,8 +122,8 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
   const isOtherBoardingPoint = boardingPoint === "Otros";
   const isKnownBoardingPoint = boardingPointOptions.includes(boardingPoint);
   let selectedBoardingPoint = "";
-  if (isOtherBoardingPoint) selectedBoardingPoint = otherBoardingPoint.trim();
-  else if (isKnownBoardingPoint) selectedBoardingPoint = boardingPoint;
+  if (isOtherBoardingPoint) selectedBoardingPoint = otherBoardingPoint.trim().toLocaleUpperCase("es-CO");
+  else if (isKnownBoardingPoint) selectedBoardingPoint = boardingPoint.toLocaleUpperCase("es-CO");
   const selectedBoardingPointOption = isOtherBoardingPoint || isKnownBoardingPoint ? boardingPoint : "";
   const holdSecondsLeft = holdExpiresAt ? Math.max(0, Math.ceil((Date.parse(holdExpiresAt) - now) / 1000)) : 0;
   const reservationsOpen = selectedTrip ? Date.parse(selectedTrip.reservas_abren_at) <= now : false;
@@ -462,7 +462,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
     const { data: bookingId, error: bookingError } = await supabase.rpc("confirm_trip_booking", {
       p_trip_id: trip.id,
       p_seat_number: availableSeat.seat_number,
-      p_punto_de_abordaje: favoriteJourney.punto_de_abordaje,
+      p_punto_de_abordaje: favoriteJourney.punto_de_abordaje.trim().toLocaleUpperCase("es-CO"),
     });
     if (bookingError) {
       await supabase.rpc("release_my_trip_seat_hold", { p_trip_id: trip.id, p_seat_number: availableSeat.seat_number });
@@ -477,12 +477,11 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
     setTravelDate(today);
     setSelectedTrip(trip);
     setSelectedSeat(availableSeat.seat_number);
-    setBoardingPoint(boardingPointOptions.includes(favoriteJourney.punto_de_abordaje)
-      ? favoriteJourney.punto_de_abordaje
-      : "Otros");
-    setOtherBoardingPoint(boardingPointOptions.includes(favoriteJourney.punto_de_abordaje)
-      ? ""
-      : favoriteJourney.punto_de_abordaje);
+    const favoriteBoardingPoint = boardingPointOptions.find(
+      (point) => point.toLocaleLowerCase("es-CO") === favoriteJourney.punto_de_abordaje.trim().toLocaleLowerCase("es-CO"),
+    );
+    setBoardingPoint(favoriteBoardingPoint ?? "Otros");
+    setOtherBoardingPoint(favoriteBoardingPoint ? "" : favoriteJourney.punto_de_abordaje);
     setHoldExpiresAt(null);
     setBooking({ id: String(bookingId), trip, seatNumber: availableSeat.seat_number });
     setMessage("");
@@ -671,7 +670,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
             <div className="success-summary">
               <span><Clock3 size={18} /> {formatDateTime(booking.trip.fecha_salida)}</span>
               <span><Users size={18} /> Puesto {booking.seatNumber}</span>
-              <span><MapPin size={18} /> {selectedBoardingPoint}</span>
+              <span><MapPin size={18} /> {selectedBoardingPoint.toLocaleUpperCase("es-CO")}</span>
             </div>
             <p className="success-help">El pago se realiza al abordar. ¡Te esperamos!</p>
             <button className="button button-secondary button-full" onClick={saveFavoriteJourney} type="button">
@@ -850,17 +849,17 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                     {fieldErrors.phone && <small className="field-error">{fieldErrors.phone}</small>}
                   </label>
                   <label className="field boarding-point-search">
-                    <span>Punto de encuentro · {selectedOrigin}</span>
+                    <span>Punto de encuentro · {selectedOrigin.toLocaleUpperCase("es-CO")}</span>
                     <select value={selectedBoardingPointOption} onChange={(event) => {
                       setBoardingPoint(event.target.value);
                       setOtherBoardingPoint("");
                       setFieldErrors((previous) => ({ ...previous, boardingPoint: "" }));
                     }}>
                       <option value="">Elige dónde te recogemos</option>
-                      {boardingPointOptions.map((point) => <option key={point} value={point}>{point}</option>)}
+                      {boardingPointOptions.map((point) => <option key={point} value={point}>{point.toLocaleUpperCase("es-CO")}</option>)}
                     </select>
                     {boardingPoint === "Otros" && (
-                      <input placeholder="Escribe el punto de encuentro" value={otherBoardingPoint} onChange={(event) => setOtherBoardingPoint(event.target.value)} />
+                      <input placeholder="Escribe el punto de encuentro" value={otherBoardingPoint} onChange={(event) => setOtherBoardingPoint(event.target.value.toLocaleUpperCase("es-CO"))} />
                     )}
                     {fieldErrors.boardingPoint && <small className="field-error">{fieldErrors.boardingPoint}</small>}
                   </label>
@@ -881,7 +880,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                   <h3>{selectedTrip.origen}<span>→</span>{selectedTrip.destino}</h3>
                   <div><Clock3 size={18} /><span>{formatDateTime(selectedTrip.fecha_salida)}</span></div>
                   <div><Users size={18} /><span>Puesto {selectedSeat} para {fullName}</span></div>
-                  <div><MapPin size={18} /><span>Te subes en: {selectedBoardingPoint}</span></div>
+                  <div><MapPin size={18} /><span>Te subes en: {selectedBoardingPoint.toLocaleUpperCase("es-CO")}</span></div>
                   {selectedTrip.precio !== null && <div><span className="confirm-price-label">Valor del viaje</span><strong>{formatMoney(Number(selectedTrip.precio))}</strong></div>}
                 </div>
                 <p className="payment-note"><ShieldCheck size={19} /> Pagas al abordar, directamente al conductor.</p>

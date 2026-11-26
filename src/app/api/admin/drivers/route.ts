@@ -2,15 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getPhoneLoginEmail } from "@/lib/phone-login";
 
 export const runtime = "nodejs";
 
 const driverSchema = z.object({
   fullName: z.string().trim().min(2, "Escribe el nombre completo.").max(100),
   phone: z.string().trim().min(7, "Escribe un teléfono válido.").max(20),
-  username: z.string().trim().min(3, "Usa al menos 3 caracteres.").max(30)
-    .regex(/^[a-zA-Z0-9._-]+$/, "El usuario tiene caracteres no permitidos.")
-    .refine((value) => value.toLowerCase() !== "admin", "Ese usuario está reservado."),
   password: z.string().min(8, "Usa al menos 8 caracteres.").max(72, "La contraseña es demasiado larga."),
 });
 
@@ -54,20 +52,24 @@ export async function POST(request: Request) {
   const adminClient = createSupabaseAdminClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const username = parsed.data.username.toLowerCase();
+  const phoneLoginEmail = getPhoneLoginEmail(parsed.data.phone);
+  if (!phoneLoginEmail) {
+    return NextResponse.json({ error: "Escribe un teléfono válido para usarlo como usuario de acceso." }, { status: 400 });
+  }
+  const phoneUsername = phoneLoginEmail.slice(0, -"@transporteban.test".length);
   const { data: created, error: createError } = await adminClient.auth.admin.createUser({
-    email: `${username}@transporteban.test`,
+    email: phoneLoginEmail,
     password: parsed.data.password,
     email_confirm: true,
     user_metadata: {
       full_name: parsed.data.fullName,
       phone: parsed.data.phone,
-      username,
+      username: phoneUsername,
     },
   });
   if (createError) {
     if (/already registered|already been registered/i.test(createError.message)) {
-      return NextResponse.json({ error: "Ese usuario ya existe. Escribe otro." }, { status: 409 });
+      return NextResponse.json({ error: "Ya existe una cuenta con ese número de teléfono." }, { status: 409 });
     }
     return NextResponse.json({ error: "No pudimos crear la cuenta. Revisa los datos e inténtalo otra vez." }, { status: 400 });
   }
@@ -89,6 +91,6 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
-    message: `Cuenta creada. Usuario: ${username}. Entrégale la contraseña inicial al conductor.`,
+    message: `Cuenta creada. Usuario para iniciar sesión: ${parsed.data.phone}. Entrégale la contraseña inicial al conductor.`,
   }, { status: 201 });
 }

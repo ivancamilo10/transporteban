@@ -10,6 +10,7 @@ import { z } from "zod";
 import { ArrowLeft, LoaderCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/configured";
+import { getPhoneLoginEmail } from "@/lib/phone-login";
 import { Button } from "@/components/ui/button";
 
 const schemas = {
@@ -98,8 +99,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         const input = schemas.login.parse(values);
         const identifier = input.identifier;
         const email = identifier.includes("@")
-          ? identifier
-          : `${identifier.toLowerCase()}@transporteban.test`;
+          ? identifier.toLowerCase()
+          : getPhoneLoginEmail(identifier) ?? `${identifier.toLowerCase()}@transporteban.test`;
         const result = await supabase.auth.signInWithPassword({
           email,
           password: input.password,
@@ -158,8 +159,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             </>
           )}
           {mode === "login" ? (
-            <Field label="Usuario o correo electrónico" error={"identifier" in errors ? errors.identifier?.message : undefined}>
-              <input type="text" autoComplete="username" placeholder="admin o tu correo" {...register("identifier")} />
+            <Field label="Teléfono o correo electrónico" error={"identifier" in errors ? errors.identifier?.message : undefined}>
+                <input type="text" autoComplete="username" placeholder="Tu número de teléfono" {...register("identifier")} />
             </Field>
           ) : (
             <Field label="Correo electrónico" error={"email" in errors ? errors.email?.message : undefined}>

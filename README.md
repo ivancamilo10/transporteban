@@ -36,20 +36,20 @@ La quinta migración actualiza las plantillas existentes y mueve los viajes futu
 
 ### Crear las cuentas de administrador y conductor
 
-El registro público nunca permite escoger un rol privilegiado. No hay contraseñas predeterminadas en el repositorio. Crea la cuenta de administrador en Supabase Auth con el usuario/correo `admin@transporteban.test` y define su contraseña directamente en el panel privado de Supabase. Luego ejecuta:
+El registro público nunca permite escoger un rol privilegiado. No hay contraseñas predeterminadas en el repositorio. Crea la cuenta de administrador en Supabase Auth con un correo interno formado por el teléfono sin símbolos seguido de `@transporteban.test` (por ejemplo, `3103676275@transporteban.test`) y define su contraseña directamente en el panel privado de Supabase. Luego ejecuta:
 
 ```sql
 update public.profiles
 set role = 'admin', phone = '<teléfono del administrador>'
 where id = (
   select id from auth.users
-  where email = 'admin@transporteban.test'
+  where email = '<teléfono sin símbolos>@transporteban.test'
 );
 ```
 
-Desde `/admin`, el administrador crea la cuenta del conductor con nombre, teléfono, usuario `conductor` y una contraseña definida en el formulario. Ingresa los teléfonos y las contraseñas directamente en la base de datos o el formulario privado, nunca en archivos públicos del repositorio. El registro público siempre crea pasajeros y no permite elevar roles. Si una contraseña se compartió públicamente, cámbiala antes de usarla.
+Desde `/admin`, el administrador crea la cuenta del conductor con nombre, teléfono y contraseña. El teléfono será su usuario de inicio de sesión. El registro público siempre crea pasajeros y no permite elevar roles. Si una contraseña se compartió públicamente, cámbiala antes de usarla.
 
-En el inicio de sesión puedes ingresar correo o usuario. Los usuarios creados desde `/admin` se resuelven internamente al dominio `.test`, que no recibe mensajes ni enlaces para recuperar contraseña; el administrador debe compartir la contraseña inicial directamente. Usa correos reales para las cuentas que necesiten recuperar contraseña.
+En el inicio de sesión puedes ingresar tu número de teléfono (con o sin espacios, guiones o paréntesis) o correo electrónico. Los teléfonos se resuelven internamente al dominio `.test`, que no recibe mensajes ni enlaces para recuperar contraseña; el administrador debe compartir la contraseña inicial directamente. Usa correos reales para las cuentas que necesiten recuperar contraseña.
 
 Para asignar manualmente el rol de conductor a una cuenta registrada:
 

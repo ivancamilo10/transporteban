@@ -20,9 +20,6 @@ type RegisteredProfile = {
 const driverSchema = z.object({
   fullName: z.string().trim().min(2, "Escribe el nombre completo.").max(100),
   phone: z.string().trim().min(7, "Escribe un teléfono válido.").max(20),
-  username: z.string().trim().min(3, "Usa al menos 3 caracteres.").max(30)
-    .regex(/^[a-zA-Z0-9._-]+$/, "Usa solo letras, números, punto, guion o guion bajo.")
-    .refine((value) => value.toLowerCase() !== "admin", "Ese usuario está reservado."),
   password: z.string().min(8, "Usa al menos 8 caracteres.").max(72, "La contraseña es demasiado larga."),
 });
 type DriverValues = z.infer<typeof driverSchema>;
@@ -36,7 +33,7 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
   const [notice, setNotice] = useState("");
   const { register, handleSubmit, reset, formState: { errors } } = useForm<DriverValues>({
     resolver: zodResolver(driverSchema),
-    defaultValues: { fullName: "", phone: "", username: "", password: "" },
+    defaultValues: { fullName: "", phone: "", password: "" },
   });
 
   const loadProfiles = useCallback(async () => {
@@ -112,11 +109,10 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
 
         <section className="admin-driver-card" aria-labelledby="driver-heading">
           <h2 id="driver-heading"><ShieldCheck size={21} /> Crear cuenta de conductor</h2>
-          <p>Elige el usuario y la contraseña para entregárselos al conductor. No enviaremos invitaciones por correo.</p>
+          <p>El conductor iniciará sesión con su número de teléfono y la contraseña que definas. No enviaremos invitaciones por correo.</p>
           <form className="admin-driver-form" onSubmit={handleSubmit(createDriver)} noValidate>
             <label>Nombre completo<input autoComplete="name" placeholder="Ej. María Pérez" {...register("fullName")} />{errors.fullName && <small className="field-error">{errors.fullName.message}</small>}</label>
             <label>Teléfono<input autoComplete="tel" inputMode="tel" placeholder="Ej. 300 123 4567" {...register("phone")} />{errors.phone && <small className="field-error">{errors.phone.message}</small>}</label>
-            <label>Usuario<input autoComplete="off" placeholder="Ej. conductor1" {...register("username")} />{errors.username && <small className="field-error">{errors.username.message}</small>}</label>
             <label>Contraseña inicial<input autoComplete="new-password" placeholder="Mínimo 8 caracteres" type="password" {...register("password")} />{errors.password && <small className="field-error">{errors.password.message}</small>}</label>
             <button className="button button-primary" disabled={creating} type="submit">{creating ? <><LoaderCircle className="spin" size={18} /> Creando cuenta...</> : <><UserRoundPlus size={18} /> Crear cuenta</>}</button>
           </form>

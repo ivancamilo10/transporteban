@@ -28,7 +28,7 @@ create table public.app_settings (
   whatsapp_conductor text not null,
   mensaje_bienvenida text not null default 'Viaja con confianza',
   minutos_bloqueo_puesto integer not null default 10 check (minutos_bloqueo_puesto between 1 and 120),
-  horas_apertura_reservas integer not null default 24 check (horas_apertura_reservas between 0 and 720),
+  horas_apertura_reservas integer not null default 720 check (horas_apertura_reservas between 0 and 720),
   updated_at timestamptz not null default now()
 );
 
@@ -152,7 +152,7 @@ grant select, insert, update, delete on public.trip_templates to authenticated;
 grant select, update on public.profiles to authenticated;
 
 insert into public.app_settings (id, whatsapp_conductor, mensaje_bienvenida, minutos_bloqueo_puesto, horas_apertura_reservas)
-values (1, '3115485852', 'Viaja con confianza', 10, 24)
+values (1, '3115485852', 'Viaja con confianza', 10, 720)
 on conflict (id) do nothing;
 
 insert into public.vehicle (id, marca, modelo, color, capacidad_pasajeros)
@@ -335,7 +335,7 @@ begin
       - make_interval(hours => hours_before_opening),
     (select p.id from public.profiles p where p.role = 'driver' order by p.created_at limit 1),
     template.id
-  from generate_series(0, 6) as offsets(day_offset)
+  from generate_series(0, 29) as offsets(day_offset)
   cross join lateral (
     select (timezone('America/Bogota', now())::date + day_offset)::date as target_day
   ) as day_value
@@ -1449,8 +1449,12 @@ where tipo = 'regular'
 -- Saturday sightseeing starts after the regular half-day service; Sundays start at 6:00 a. m.
 insert into public.trip_templates (origen, destino, hora, dias_semana, precio, activo)
 values
-  ('Isabel López', 'Paseo Santa Marta, Cartagena y Santa Verónica', time '13:00', array[6]::smallint[], null, true),
-  ('Isabel López', 'Paseo Santa Marta, Cartagena y Santa Verónica', time '06:00', array[7]::smallint[], null, true)
+  ('Isabel López', 'Santa Marta', time '13:00', array[6]::smallint[], null, true),
+  ('Isabel López', 'Cartagena', time '13:00', array[6]::smallint[], null, true),
+  ('Isabel López', 'Santa Verónica', time '13:00', array[6]::smallint[], null, true),
+  ('Isabel López', 'Santa Marta', time '06:00', array[7]::smallint[], null, true),
+  ('Isabel López', 'Cartagena', time '06:00', array[7]::smallint[], null, true),
+  ('Isabel López', 'Santa Verónica', time '06:00', array[7]::smallint[], null, true)
 on conflict (origen, destino, hora, dias_semana) do nothing;
 
 select public.generate_regular_trips();

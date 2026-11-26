@@ -27,7 +27,7 @@ create table public.app_settings (
   whatsapp_conductor text not null,
   mensaje_bienvenida text not null default 'Viaja con confianza',
   minutos_bloqueo_puesto integer not null default 10 check (minutos_bloqueo_puesto between 1 and 120),
-  horas_apertura_reservas integer not null default 24 check (horas_apertura_reservas between 0 and 720),
+  horas_apertura_reservas integer not null default 720 check (horas_apertura_reservas between 0 and 720),
   updated_at timestamptz not null default now()
 );
 
@@ -151,7 +151,7 @@ grant select, insert, update, delete on public.trip_templates to authenticated;
 grant select, update on public.profiles to authenticated;
 
 insert into public.app_settings (id, whatsapp_conductor, mensaje_bienvenida, minutos_bloqueo_puesto, horas_apertura_reservas)
-values (1, '3115485852', 'Viaja con confianza', 10, 24)
+values (1, '3115485852', 'Viaja con confianza', 10, 720)
 on conflict (id) do nothing;
 
 insert into public.vehicle (id, marca, modelo, color, capacidad_pasajeros)

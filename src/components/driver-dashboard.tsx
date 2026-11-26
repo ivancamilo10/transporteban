@@ -42,7 +42,8 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
       .from("trips")
       .select("id,origen,destino,fecha_salida,estado")
       .gte("fecha_salida", new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString())
-      .order("fecha_salida", { ascending: true });
+      .order("fecha_salida", { ascending: true })
+      .limit(100);
 
     if (tripError) {
       setErrorMessage("No pudimos cargar los viajes. Intenta actualizar la página.");

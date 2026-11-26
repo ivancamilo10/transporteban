@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, ArrowUpDown, BusFront, CalendarDays, Check, Clock3, LoaderCircle, MapPin, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpDown, BusFront, CalendarDays, Check, Clock3, LoaderCircle, MapPin, RefreshCw, ShieldCheck, UserRound, Users } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -78,6 +78,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
     isSupabaseConfigured() ? "" : "Falta conectar Supabase. Revisa las variables de entorno para cargar los viajes.",
   );
   const tripRequestId = useRef(0);
+  const seatPickerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("transporteban-favorite-journey");
@@ -127,6 +128,14 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
   const selectedBoardingPointOption = isOtherBoardingPoint || isKnownBoardingPoint ? boardingPoint : "";
   const holdSecondsLeft = holdExpiresAt ? Math.max(0, Math.ceil((Date.parse(holdExpiresAt) - now) / 1000)) : 0;
   const reservationsOpen = selectedTrip ? Date.parse(selectedTrip.reservas_abren_at) <= now : false;
+
+  useEffect(() => {
+    if (!selectedTrip || step !== 1) return;
+    const frame = window.requestAnimationFrame(() => {
+      seatPickerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedTrip, step]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -766,7 +775,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                       const isSelected = selectedTrip?.id === trip.id;
                       const openingTime = Date.parse(trip.reservas_abren_at);
                       return (
-                        <button className={`trip-option ${isSelected ? "selected" : ""}`} key={trip.id} onClick={() => void chooseTrip(trip)} type="button">
+                        <button aria-pressed={isSelected} className={`trip-option ${isSelected ? "selected" : ""}`} key={trip.id} onClick={() => void chooseTrip(trip)} type="button">
                           <span className="trip-time">{formatTime(trip.fecha_salida)}</span>
                           <span className="trip-route"><b>{trip.origen}</b><span>→</span><b>{trip.destino}</b></span>
                           <span className="trip-availability">
@@ -781,7 +790,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                   </div>
                 )}
                 {selectedTrip && (
-                  <section className="seat-picker">
+                  <section className="seat-picker" ref={seatPickerRef}>
                     <div className="schedule-heading">
                       <div><h3>Elige tu puesto</h3><span>{selectedTrip.origen} a {selectedTrip.destino} · {formatTime(selectedTrip.fecha_salida)}</span></div>
                     </div>
@@ -921,7 +930,7 @@ function SeatMap({
   const byNumber = new Map(seats.map((seat) => [seat.seat_number, seat]));
   return (
     <div className="van-cabin" aria-label={`Mapa de los ${capacity} puestos de pasajeros`}>
-      <div className="driver-zone"><span className="steering-wheel" aria-hidden="true">◉</span><span>Conductor</span></div>
+      <div className="driver-zone"><span className="driver-icon" aria-hidden="true"><UserRound size={17} /></span><span>Conductor</span></div>
       <div className="seat-rows">
         {Array.from({ length: capacity }, (_, index) => index + 1).map((number) => {
           const seat = byNumber.get(number);

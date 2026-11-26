@@ -7,6 +7,16 @@ export async function middleware(request: NextRequest) {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) return response;
 
+  const pathname = request.nextUrl.pathname;
+  const passengerArea = pathname.startsWith("/inicio")
+    || pathname.startsWith("/mis-viajes")
+    || pathname.startsWith("/avisos")
+    || pathname.startsWith("/perfil");
+  const driverArea = pathname.startsWith("/conductor");
+  const adminArea = pathname.startsWith("/admin");
+  const accountEntry = pathname === "/" || pathname === "/iniciar-sesion";
+  const protectedArea = passengerArea || driverArea || adminArea;
+
   const supabase = createServerClient(url, anonKey, {
     cookies: {
       get(name: string) { return request.cookies.get(name)?.value; },
@@ -23,34 +33,41 @@ export async function middleware(request: NextRequest) {
     },
   });
   const { data: { user } } = await supabase.auth.getUser();
-  const pathname = request.nextUrl.pathname;
-  const passengerArea = pathname.startsWith("/inicio")
-    || pathname.startsWith("/mis-viajes")
-    || pathname.startsWith("/avisos")
-    || pathname.startsWith("/perfil");
-  const driverArea = pathname.startsWith("/conductor");
-  const adminArea = pathname.startsWith("/admin");
-  if ((passengerArea || driverArea || adminArea) && !user) {
-    return NextResponse.redirect(new URL("/iniciar-sesion", request.url));
+  if (protectedArea && !user) {
+    return redirectWithCookies(request, response, "/iniciar-sesion");
   }
-  if ((passengerArea || driverArea || adminArea) && user) {
+  if ((protectedArea || accountEntry) && user) {
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (accountEntry) {
+      const destination = profile?.role === "admin"
+        ? "/admin"
+        : profile?.role === "driver"
+          ? "/conductor"
+          : "/inicio";
+      return redirectWithCookies(request, response, destination);
+    }
     if (driverArea && profile?.role !== "driver") {
-      return NextResponse.redirect(new URL(profile?.role === "admin" ? "/admin" : "/inicio", request.url));
+      return redirectWithCookies(request, response, profile?.role === "admin" ? "/admin" : "/inicio");
     }
     if (passengerArea && profile?.role === "driver") {
-      return NextResponse.redirect(new URL("/conductor", request.url));
+      return redirectWithCookies(request, response, "/conductor");
     }
     if (passengerArea && profile?.role === "admin") {
-      return NextResponse.redirect(new URL("/admin", request.url));
+      return redirectWithCookies(request, response, "/admin");
     }
     if (adminArea && profile?.role !== "admin") {
-      return NextResponse.redirect(new URL(profile?.role === "driver" ? "/conductor" : "/inicio", request.url));
+      return redirectWithCookies(request, response, profile?.role === "driver" ? "/conductor" : "/inicio");
     }
   }
   return response;
 }
 
+function redirectWithCookies(request: NextRequest, response: NextResponse, pathname: string) {
+  const redirectResponse = NextResponse.redirect(new URL(pathname, request.url));
+  response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+  return redirectResponse;
+}
+
 export const config = {
-  matcher: ["/inicio/:path*", "/mis-viajes/:path*", "/avisos/:path*", "/perfil/:path*", "/conductor/:path*", "/admin/:path*"],
+  matcher: ["/", "/iniciar-sesion", "/inicio/:path*", "/mis-viajes/:path*", "/avisos/:path*", "/perfil/:path*", "/conductor/:path*", "/admin/:path*"],
 };

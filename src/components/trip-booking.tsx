@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ArrowUpDown, BusFront, CalendarDays, Check, Clock3, LoaderCircle, MapPin, RefreshCw, ShieldCheck, Users } from "lucide-react";
 import { z } from "zod";
@@ -45,6 +45,7 @@ const boardingPointsByOrigin: Record<string, string[]> = {
 };
 
 const weekendTourDestinations = ["Santa Marta", "Cartagena", "Santa Verónica"];
+const tripRequestTimeoutMs = 15000;
 
 export function TripBooking({ passenger }: { passenger: Passenger }) {
   const supabase = useMemo(() => isSupabaseConfigured() ? createClient() : null, []);
@@ -76,6 +77,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
   const [loadError, setLoadError] = useState(
     isSupabaseConfigured() ? "" : "Falta conectar Supabase. Revisa las variables de entorno para cargar los viajes.",
   );
+  const tripRequestId = useRef(0);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("transporteban-favorite-journey");
@@ -166,42 +168,67 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
   }, [supabase]);
 
   const loadTrips = useCallback(async () => {
-    if (!selectedOrigin || !selectedDestination || !supabase) return;
-    setLoadError("");
-    const start = new Date(`${travelDate}T00:00:00-05:00`);
-    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-    const { data, error } = await supabase
-      .from("trips")
-      .select("id,origen,destino,fecha_salida,precio,estado,reservas_abren_at")
-      .eq("origen", selectedOrigin)
-      .eq("destino", selectedDestination)
-      .gt("fecha_salida", new Date().toISOString())
-      .gte("fecha_salida", start.toISOString())
-      .lt("fecha_salida", end.toISOString())
-      .in("estado", ["programado", "abierto"])
-      .order("fecha_salida");
-    if (error) {
-      setTrips([]);
-      setLoadError("No pudimos buscar viajes. Revisa tu conexión e inténtalo de nuevo.");
+    if (!selectedOrigin || !selectedDestination || !supabase) {
       setLoading(false);
       return;
     }
-    const foundTrips = (data ?? []) as Trip[];
-    setTrips(foundTrips);
-    if (foundTrips.length) {
-      const { data: seatData, error: seatError } = await supabase
-        .from("seats")
-        .select("trip_id,seat_number,estado,hold_expires_at")
-        .in("trip_id", foundTrips.map((trip) => trip.id));
-      if (seatError) {
-        setLoadError("Encontramos los viajes, pero no pudimos cargar los puestos.");
-      } else {
-        setSeats((seatData ?? []) as Seat[]);
+    const requestId = ++tripRequestId.current;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), tripRequestTimeoutMs);
+    setLoading(true);
+    setLoadError("");
+    try {
+      const start = new Date(`${travelDate}T00:00:00-05:00`);
+      const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+      const { data, error } = await supabase
+        .from("trips")
+        .select("id,origen,destino,fecha_salida,precio,estado,reservas_abren_at")
+        .eq("origen", selectedOrigin)
+        .eq("destino", selectedDestination)
+        .gt("fecha_salida", new Date().toISOString())
+        .gte("fecha_salida", start.toISOString())
+        .lt("fecha_salida", end.toISOString())
+        .in("estado", ["programado", "abierto"])
+        .order("fecha_salida")
+        .abortSignal(controller.signal);
+      if (requestId !== tripRequestId.current) return;
+      if (error) {
+        setTrips([]);
+        setLoadError(controller.signal.aborted
+          ? "La búsqueda tardó demasiado. Revisa tu conexión y pulsa Actualizar."
+          : "No pudimos buscar viajes. Revisa tu conexión e inténtalo de nuevo.");
+        return;
       }
-    } else {
-      setSeats([]);
+      const foundTrips = (data ?? []) as Trip[];
+      setTrips(foundTrips);
+      if (foundTrips.length) {
+        const { data: seatData, error: seatError } = await supabase
+          .from("seats")
+          .select("trip_id,seat_number,estado,hold_expires_at")
+          .in("trip_id", foundTrips.map((trip) => trip.id))
+          .abortSignal(controller.signal);
+        if (requestId !== tripRequestId.current) return;
+        if (seatError) {
+          setLoadError(controller.signal.aborted
+            ? "Los viajes aparecieron, pero la consulta de puestos tardó demasiado. Pulsa Actualizar."
+            : "Encontramos los viajes, pero no pudimos cargar los puestos. Pulsa Actualizar.");
+        } else {
+          setSeats((seatData ?? []) as Seat[]);
+        }
+      } else {
+        setSeats([]);
+      }
+    } catch {
+      if (requestId === tripRequestId.current) {
+        setTrips([]);
+        setLoadError(controller.signal.aborted
+          ? "La búsqueda tardó demasiado. Revisa tu conexión y pulsa Actualizar."
+          : "No pudimos conectar con el servicio de viajes. Revisa tu conexión e inténtalo de nuevo.");
+      }
+    } finally {
+      window.clearTimeout(timeout);
+      if (requestId === tripRequestId.current) setLoading(false);
     }
-    setLoading(false);
   }, [selectedDestination, selectedOrigin, supabase, travelDate]);
 
   // Supabase's asynchronous response updates the trip list after the request completes.
@@ -464,32 +491,56 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
     setSaving(true);
     setFieldErrors({});
     setMessage("");
-    if (selectedSeat !== null && selectedSeat !== seat.seat_number) {
-      await supabase.rpc("release_my_trip_seat_hold", {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), tripRequestTimeoutMs);
+    try {
+      if (selectedSeat !== null && selectedSeat !== seat.seat_number) {
+        await supabase.rpc("release_my_trip_seat_hold", {
+          p_trip_id: selectedTrip.id,
+          p_seat_number: selectedSeat,
+        }).abortSignal(controller.signal);
+      }
+      const { data, error } = await supabase.rpc("hold_trip_seat", {
         p_trip_id: selectedTrip.id,
-        p_seat_number: selectedSeat,
-      });
+        p_seat_number: seat.seat_number,
+      }).abortSignal(controller.signal);
+      if (error) {
+        setMessage(controller.signal.aborted
+          ? "La solicitud para apartar el puesto tardó demasiado. Actualiza los puestos antes de volver a intentarlo."
+          : friendlyBookingError(error.message));
+        void refreshCurrentSeats();
+      } else {
+        const hold = data as { hold_expires_at: string };
+        setSelectedSeat(seat.seat_number);
+        setHoldExpiresAt(hold.hold_expires_at);
+        setNow(Date.now());
+      }
+    } catch {
+      setMessage(controller.signal.aborted
+        ? "La solicitud para apartar el puesto tardó demasiado. Actualiza los puestos antes de volver a intentarlo."
+        : "No pudimos apartar el puesto por un problema de conexión. Actualiza los puestos e inténtalo otra vez.");
+      void refreshCurrentSeats();
+    } finally {
+      window.clearTimeout(timeout);
+      setSaving(false);
     }
-    const { data, error } = await supabase.rpc("hold_trip_seat", {
-      p_trip_id: selectedTrip.id,
-      p_seat_number: seat.seat_number,
-    });
-    if (error) {
-      setMessage(friendlyBookingError(error.message));
-      await refreshCurrentSeats();
-    } else {
-      const hold = data as { hold_expires_at: string };
-      setSelectedSeat(seat.seat_number);
-      setHoldExpiresAt(hold.hold_expires_at);
-      setNow(Date.now());
-    }
-    setSaving(false);
   }
 
   async function refreshCurrentSeats() {
     if (!selectedTrip || !supabase) return;
-    const { data } = await supabase.from("seats").select("trip_id,seat_number,estado,hold_expires_at").eq("trip_id", selectedTrip.id);
-    if (data) setSeats((previous) => [...previous.filter((seat) => seat.trip_id !== selectedTrip.id), ...(data as Seat[])]);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), tripRequestTimeoutMs);
+    try {
+      const { data } = await supabase.from("seats")
+        .select("trip_id,seat_number,estado,hold_expires_at")
+        .eq("trip_id", selectedTrip.id)
+        .abortSignal(controller.signal);
+      if (data) setSeats((previous) => [...previous.filter((seat) => seat.trip_id !== selectedTrip.id), ...(data as Seat[])]);
+    } catch {
+      setMessage("No pudimos actualizar los puestos. Revisa tu conexión e inténtalo de nuevo.");
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
 
   function continueToDetails() {
@@ -512,32 +563,46 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
     if (!selectedTrip || selectedSeat === null || !supabase) return;
     setSaving(true);
     setMessage("");
-    const { error: profileError } = await supabase.from("profiles").update({
-      full_name: fullName.trim(),
-      phone: phone.trim(),
-    }).eq("id", passenger.id);
-    if (profileError) {
-      setMessage("No pudimos guardar tus datos de contacto. Revisa tu perfil e inténtalo otra vez.");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), tripRequestTimeoutMs);
+    try {
+      const { error: profileError } = await supabase.from("profiles").update({
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+      }).eq("id", passenger.id).abortSignal(controller.signal);
+      if (profileError) {
+        setMessage(controller.signal.aborted
+          ? "La solicitud tardó demasiado. Revisa tu conexión y vuelve a confirmar."
+          : "No pudimos guardar tus datos de contacto. Revisa tu perfil e inténtalo otra vez.");
+        return;
+      }
+      const { data, error } = await supabase.rpc("confirm_trip_booking", {
+        p_trip_id: selectedTrip.id,
+        p_seat_number: selectedSeat,
+        p_punto_de_abordaje: selectedBoardingPoint,
+      }).abortSignal(controller.signal);
+      if (error) {
+        setMessage(controller.signal.aborted
+          ? "La confirmación tardó demasiado. Actualiza tus viajes antes de volver a intentarlo."
+          : friendlyBookingError(error.message));
+        void refreshCurrentSeats();
+        setStep(1);
+        setSelectedSeat(null);
+        setHoldExpiresAt(null);
+      } else {
+        setBooking({ id: String(data), trip: selectedTrip, seatNumber: selectedSeat });
+        setHoldExpiresAt(null);
+        void loadTrips();
+      }
+    } catch {
+      setMessage(controller.signal.aborted
+        ? "La confirmación tardó demasiado. Actualiza tus viajes antes de volver a intentarlo."
+        : "No pudimos confirmar la reserva por un problema de conexión. Actualiza los puestos antes de volver a intentarlo.");
+      void refreshCurrentSeats();
+    } finally {
+      window.clearTimeout(timeout);
       setSaving(false);
-      return;
     }
-    const { data, error } = await supabase.rpc("confirm_trip_booking", {
-      p_trip_id: selectedTrip.id,
-      p_seat_number: selectedSeat,
-      p_punto_de_abordaje: selectedBoardingPoint,
-    });
-    if (error) {
-      setMessage(friendlyBookingError(error.message));
-      await refreshCurrentSeats();
-      setStep(1);
-      setSelectedSeat(null);
-      setHoldExpiresAt(null);
-    } else {
-      setBooking({ id: String(data), trip: selectedTrip, seatNumber: selectedSeat });
-      setHoldExpiresAt(null);
-      void loadTrips();
-    }
-    setSaving(false);
   }
 
   function swapRoute() {

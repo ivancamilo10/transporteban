@@ -135,7 +135,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       <section className="auth-card" aria-labelledby="auth-title">
         <Link href="/" className="back-link"><ArrowLeft size={18} /> Volver al inicio</Link>
         <div className="auth-brand-icon" aria-hidden="true"><BusFront size={27} strokeWidth={2.2} /></div>
-        <p className="eyebrow">TRANSPORTEBAN</p>
+        <p className="eyebrow">TRANSPORTE ISABEL LÓPEZ</p>
         <h1 id="auth-title">{copy.title}</h1>
         <p className="auth-subtitle">{copy.subtitle}</p>
         <form className="auth-form" onSubmit={handleSubmit(submit)}>

@@ -99,7 +99,7 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
     <main className="app-shell">
       <section className="my-trips-card">
         <header className="booking-header">
-          <Link className="brand" href="/"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>TransporteBan</span></Link>
+          <Link className="brand" href="/"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>Transporte Isabel López</span></Link>
           <Link className="booking-profile" href="/"><ArrowLeft size={17} /> Inicio</Link>
         </header>
         <div className="booking-welcome">

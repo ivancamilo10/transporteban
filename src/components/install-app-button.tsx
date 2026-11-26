@@ -30,5 +30,5 @@ export function InstallAppButton() {
     setPromptEvent(null);
   }
 
-  return <button className="button button-primary button-full" onClick={() => void install()} type="button"><Download size={18} /> Instalar TransporteBan</button>;
+  return <button className="button button-primary button-full" onClick={() => void install()} type="button"><Download size={18} /> Instalar Transporte Isabel López</button>;
 }

@@ -146,7 +146,7 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
     <main className="app-shell">
       <section className="my-trips-card">
         <header className="booking-header">
-          <Link className="brand" href="/"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>TransporteBan</span></Link>
+          <Link className="brand" href="/"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>Transporte Isabel López</span></Link>
           <Link className="booking-profile" href="/"><ArrowLeft size={17} /> Inicio</Link>
         </header>
         <div className="booking-welcome">
@@ -223,7 +223,7 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
 function whatsappUrl(phone: string, passengerName: string, booking: Booking, trip: Trip) {
   const digits = phone.replace(/\D/g, "");
   const internationalPhone = digits.length === 10 ? `57${digits}` : digits;
-  const message = `Hola ${passengerName}, soy el conductor de TransporteBan. Te escribo por tu reserva de ${trip.origen} a ${trip.destino}, a las ${formatTripTime(trip.fecha_salida)}. Tu puesto es el ${booking.seat_number}.`;
+  const message = `Hola ${passengerName}, soy el conductor de Transporte Isabel López. Te escribo por tu reserva de ${trip.origen} a ${trip.destino}, a las ${formatTripTime(trip.fecha_salida)}. Tu puesto es el ${booking.seat_number}.`;
   return `https://wa.me/${internationalPhone}?text=${encodeURIComponent(message)}`;
 }
 

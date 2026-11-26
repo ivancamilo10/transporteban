@@ -12,7 +12,7 @@ import { PassengerNavigation } from "@/components/passenger-navigation";
 import { Tutorial } from "@/components/tutorial";
 
 type Passenger = { id: string; fullName: string; phone: string };
-type RouteTemplate = { origen: string; destino: string; activo: boolean };
+type RouteTemplate = { origen: string; destino: string; activo: boolean; dias_semana: number[] };
 type Trip = {
   id: string;
   origen: string;
@@ -39,6 +39,11 @@ const passengerSchema = z.object({
   boardingPoint: z.string().trim().min(3, "Indica dónde te vas a subir."),
 });
 
+const boardingPointsByOrigin: Record<string, string[]> = {
+  "Isabel López": ["Colegio Bachillerato", "Cañaña", "CDI", "Tienda Boulevard", "El Guachi", "Otros"],
+  Sabanalarga: ["Olímpica", "Hospital", "Centro", "Mercado", "D1 Cordialidad", "Otros"],
+};
+
 export function TripBooking({ passenger }: { passenger: Passenger }) {
   const supabase = useMemo(() => isSupabaseConfigured() ? createClient() : null, []);
   const [templates, setTemplates] = useState<RouteTemplate[]>([]);
@@ -58,6 +63,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
   const [fullName, setFullName] = useState(passenger.fullName);
   const [phone, setPhone] = useState(passenger.phone);
   const [boardingPoint, setBoardingPoint] = useState("");
+  const [otherBoardingPoint, setOtherBoardingPoint] = useState("");
   const [booking, setBooking] = useState<BookingResult | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured());
   const [saving, setSaving] = useState(false);
@@ -84,14 +90,29 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
     }
   }, []);
 
+  const weekday = new Date(`${travelDate}T12:00:00Z`).getUTCDay() || 7;
+  const availableRoutes = useMemo(
+    () => templates.filter((route) => route.activo && route.dias_semana.includes(weekday)),
+    [templates, weekday],
+  );
   const routeOrigins = useMemo(
-    () => Array.from(new Set(templates.filter((route) => route.activo).map((route) => route.origen))),
-    [templates],
+    () => Array.from(new Set(availableRoutes.map((route) => route.origen))),
+    [availableRoutes],
   );
+  const selectedOrigin = routeOrigins.includes(origin) ? origin : routeOrigins[0] ?? "";
   const routeDestinations = useMemo(
-    () => Array.from(new Set(templates.filter((route) => route.activo && route.origen === origin).map((route) => route.destino))),
-    [templates, origin],
+    () => Array.from(new Set(availableRoutes.filter((route) => route.origen === selectedOrigin).map((route) => route.destino))),
+    [availableRoutes, selectedOrigin],
   );
+  const selectedDestination = routeDestinations.includes(destination) ? destination : routeDestinations[0] ?? "";
+  const canSwapRoute = availableRoutes.some((route) => route.origen === selectedDestination && route.destino === selectedOrigin);
+  const boardingPointOptions = boardingPointsByOrigin[selectedOrigin] ?? [];
+  const isOtherBoardingPoint = boardingPoint === "Otros";
+  const isKnownBoardingPoint = boardingPointOptions.includes(boardingPoint);
+  let selectedBoardingPoint = "";
+  if (isOtherBoardingPoint) selectedBoardingPoint = otherBoardingPoint.trim();
+  else if (isKnownBoardingPoint) selectedBoardingPoint = boardingPoint;
+  const selectedBoardingPointOption = isOtherBoardingPoint || isKnownBoardingPoint ? boardingPoint : "";
   const holdSecondsLeft = holdExpiresAt ? Math.max(0, Math.ceil((Date.parse(holdExpiresAt) - now) / 1000)) : 0;
   const reservationsOpen = selectedTrip ? Date.parse(selectedTrip.reservas_abren_at) <= now : false;
 
@@ -101,7 +122,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
     let active = true;
     async function loadSetup() {
       const [templateResult, settingsResult, vehicleResult] = await Promise.all([
-        client.from("trip_templates").select("origen,destino,activo").eq("activo", true).order("origen"),
+        client.from("trip_templates").select("origen,destino,activo,dias_semana").eq("activo", true).order("origen"),
         client.from("app_settings").select("whatsapp_conductor").eq("id", 1).maybeSingle(),
         client.from("vehicle").select("capacidad_pasajeros").eq("id", 1).maybeSingle(),
       ]);
@@ -135,15 +156,15 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
   }, [supabase]);
 
   const loadTrips = useCallback(async () => {
-    if (!origin || !destination || !supabase) return;
+    if (!selectedOrigin || !selectedDestination || !supabase) return;
     setLoadError("");
     const start = new Date(`${travelDate}T00:00:00-05:00`);
     const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
     const { data, error } = await supabase
       .from("trips")
       .select("id,origen,destino,fecha_salida,precio,estado,reservas_abren_at")
-      .eq("origen", origin)
-      .eq("destino", destination)
+      .eq("origen", selectedOrigin)
+      .eq("destino", selectedDestination)
       .gt("fecha_salida", new Date().toISOString())
       .gte("fecha_salida", start.toISOString())
       .lt("fecha_salida", end.toISOString())
@@ -171,7 +192,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
       setSeats([]);
     }
     setLoading(false);
-  }, [destination, origin, supabase, travelDate]);
+  }, [selectedDestination, selectedOrigin, supabase, travelDate]);
 
   // Supabase's asynchronous response updates the trip list after the request completes.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -319,7 +340,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
       origen: booking.trip.origen,
       destino: booking.trip.destino,
       hora: getBogotaTime(booking.trip.fecha_salida),
-      punto_de_abordaje: boardingPoint.trim(),
+      punto_de_abordaje: selectedBoardingPoint,
     };
     window.localStorage.setItem("transporteban-favorite-journey", JSON.stringify(favorite));
     setFavoriteJourney(favorite);
@@ -407,7 +428,12 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
     setTravelDate(today);
     setSelectedTrip(trip);
     setSelectedSeat(availableSeat.seat_number);
-    setBoardingPoint(favoriteJourney.punto_de_abordaje);
+    setBoardingPoint(boardingPointOptions.includes(favoriteJourney.punto_de_abordaje)
+      ? favoriteJourney.punto_de_abordaje
+      : "Otros");
+    setOtherBoardingPoint(boardingPointOptions.includes(favoriteJourney.punto_de_abordaje)
+      ? ""
+      : favoriteJourney.punto_de_abordaje);
     setHoldExpiresAt(null);
     setBooking({ id: String(bookingId), trip, seatNumber: availableSeat.seat_number });
     setMessage("");
@@ -457,7 +483,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
   }
 
   function continueToDetails() {
-    const validation = passengerSchema.safeParse({ fullName, phone, boardingPoint });
+    const validation = passengerSchema.safeParse({ fullName, phone, boardingPoint: selectedBoardingPoint });
     if (!validation.success) {
       setFieldErrors(Object.fromEntries(validation.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
       return;
@@ -488,7 +514,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
     const { data, error } = await supabase.rpc("confirm_trip_booking", {
       p_trip_id: selectedTrip.id,
       p_seat_number: selectedSeat,
-      p_punto_de_abordaje: boardingPoint.trim(),
+      p_punto_de_abordaje: selectedBoardingPoint,
     });
     if (error) {
       setMessage(friendlyBookingError(error.message));
@@ -505,10 +531,12 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
   }
 
   function swapRoute() {
-    if (!destination) return;
+    if (!selectedDestination) return;
     void changeSearch(() => {
-      setOrigin(destination);
-      setDestination(origin);
+      setOrigin(selectedDestination);
+      setDestination(selectedOrigin);
+      setBoardingPoint("");
+      setOtherBoardingPoint("");
     });
   }
 
@@ -527,7 +555,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
       <section className="booking-card">
         <Tutorial autoStart />
         <header className="booking-header">
-          <Link className="brand" href="/"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>TransporteBan</span></Link>
+          <Link className="brand" href="/"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>Transporte Isabel López</span></Link>
           <Link className="booking-profile" href="/mis-viajes">Mis viajes</Link>
         </header>
         <div className="booking-welcome">
@@ -545,7 +573,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
             <div className="success-summary">
               <span><Clock3 size={18} /> {formatDateTime(booking.trip.fecha_salida)}</span>
               <span><Users size={18} /> Puesto {booking.seatNumber}</span>
-              <span><MapPin size={18} /> {boardingPoint}</span>
+              <span><MapPin size={18} /> {selectedBoardingPoint}</span>
             </div>
             <p className="success-help">El pago se realiza al abordar. ¡Te esperamos!</p>
             <button className="button button-secondary button-full" onClick={saveFavoriteJourney} type="button">
@@ -576,19 +604,21 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                 <div className="section-title"><span>1 de 3</span><h2>¿A dónde vas?</h2></div>
                 <div className="route-fields">
                   <label className="field"><span>Salgo desde</span>
-                    <select value={origin} onChange={(event) => {
+                    <select value={selectedOrigin} onChange={(event) => {
                       const nextOrigin = event.target.value;
                       void changeSearch(() => {
                         setOrigin(nextOrigin);
-                        setDestination(templates.find((route) => route.origen === nextOrigin)?.destino ?? "");
+                        setDestination(availableRoutes.find((route) => route.origen === nextOrigin)?.destino ?? "");
+                        setBoardingPoint("");
+                        setOtherBoardingPoint("");
                       });
                     }}>
                       {routeOrigins.map((place) => <option key={place} value={place}>{place}</option>)}
                     </select>
                   </label>
-                  <button className="swap-button" aria-label="Intercambiar origen y destino" onClick={swapRoute} type="button"><ArrowUpDown size={20} /></button>
+                  <button className="swap-button" aria-label="Intercambiar origen y destino" disabled={!canSwapRoute} onClick={swapRoute} type="button"><ArrowUpDown size={20} /></button>
                   <label className="field"><span>Voy hacia</span>
-                    <select value={destination} onChange={(event) => void changeSearch(() => setDestination(event.target.value))}>
+                    <select value={selectedDestination} onChange={(event) => void changeSearch(() => setDestination(event.target.value))}>
                       {routeDestinations.map((place) => <option key={place} value={place}>{place}</option>)}
                     </select>
                   </label>
@@ -699,9 +729,18 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                     <input autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
                     {fieldErrors.phone && <small className="field-error">{fieldErrors.phone}</small>}
                   </label>
-                  <label className="field"><span>¿Dónde te vas a subir?</span>
-                    <input placeholder="Ej. Parque principal" value={boardingPoint} onChange={(event) => setBoardingPoint(event.target.value)} />
-                    <small>Escribe un lugar fácil de reconocer.</small>
+                  <label className="field"><span>Punto de encuentro · {selectedOrigin}</span>
+                    <select value={selectedBoardingPointOption} onChange={(event) => {
+                      setBoardingPoint(event.target.value);
+                      setOtherBoardingPoint("");
+                    }}>
+                      <option value="">Elige tu punto de encuentro</option>
+                      {boardingPointOptions.map((point) => <option key={point} value={point}>{point}</option>)}
+                    </select>
+                    {boardingPoint === "Otros" && (
+                      <input placeholder="Escribe el punto de encuentro" value={otherBoardingPoint} onChange={(event) => setOtherBoardingPoint(event.target.value)} />
+                    )}
+                    <small>Selecciona dónde te recogeremos.</small>
                     {fieldErrors.boardingPoint && <small className="field-error">{fieldErrors.boardingPoint}</small>}
                   </label>
                 </div>
@@ -721,7 +760,7 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                   <h3>{selectedTrip.origen}<span>→</span>{selectedTrip.destino}</h3>
                   <div><Clock3 size={18} /><span>{formatDateTime(selectedTrip.fecha_salida)}</span></div>
                   <div><Users size={18} /><span>Puesto {selectedSeat} para {fullName}</span></div>
-                  <div><MapPin size={18} /><span>Te subes en: {boardingPoint}</span></div>
+                  <div><MapPin size={18} /><span>Te subes en: {selectedBoardingPoint}</span></div>
                   {selectedTrip.precio !== null && <div><span className="confirm-price-label">Valor del viaje</span><strong>{formatMoney(Number(selectedTrip.precio))}</strong></div>}
                 </div>
                 <p className="payment-note"><ShieldCheck size={19} /> Pagas al abordar, directamente al conductor.</p>

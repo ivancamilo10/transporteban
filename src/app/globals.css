@@ -233,8 +233,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 600px) {
   .booking-shell { padding: 0 0 var(--safe-bottom); }
   .booking-card, .my-trips-card { min-height: 100dvh; padding: 16px 17px calc(28px + var(--safe-bottom)); border-radius: 0; border: 0; box-shadow: none; }
-  .booking-header { min-height: 48px; }
+  .booking-header, .booking-card, .my-trips-card, .booking-step, .route-fields, .weekend-tour-card { min-width: 0; }
+  .booking-header { min-height: 48px; gap: 8px; }
+  .booking-header .brand { min-width: 0; gap: 7px; }
+  .booking-header .brand > span:last-child { min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+  .booking-profile { flex: 0 0 auto; padding: 0 9px; white-space: nowrap; }
   .booking-welcome { padding-top: 22px; }
+  .route-fields { grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr); gap: 10px 8px; }
+  .field select, .date-field input { min-width: 0; max-width: 100%; }
+  .field select { padding-right: 8px; padding-left: 9px; font-size: 15px; }
+  .booking-notice { flex-wrap: wrap; }
   .trip-option { grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "time arrow" "route arrow" "availability price"; gap: 5px 8px; padding: 12px; }
   .trip-time { grid-area: time; font-size: 17px; }
   .trip-route { grid-area: route; flex-wrap: nowrap; font-size: 13px; }
@@ -247,10 +255,20 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .reservation-card { padding: 15px; }
 }
 
+@media (max-width: 380px) {
+  .route-fields { grid-template-columns: minmax(0, 1fr); }
+  .route-fields > .swap-button { grid-column: 1; justify-self: center; transform: rotate(90deg); }
+  .route-fields > .field { grid-column: 1; }
+}
+
 @media (max-width: 760px) {
-  .topbar { height: 68px; padding: 0 18px; }
+  .topbar { height: 68px; padding: 0 18px; gap: 8px; }
+  .topbar .brand { min-width: 0; gap: 7px; }
+  .topbar .brand > span:last-child { min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+  .topbar .brand-mark { flex: 0 0 40px; width: 40px; height: 40px; }
   .top-links .button-quiet { display: none; }
-  .top-links .button { min-height: 44px; padding: 0 14px; }
+  .top-links { flex: 0 0 auto; }
+  .top-links .button { min-height: 44px; padding: 0 10px; white-space: nowrap; }
   .hero { display: flex; flex-direction: column; align-items: stretch; margin-top: 12px; padding: 24px 20px 40px; gap: 32px; }
   .hero h1 { font-size: clamp(42px, 12vw, 58px); }
   .hero-copy { font-size: 17px; margin: 17px 0 22px; }
@@ -386,6 +404,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 @media (max-width: 600px) {
+  .admin-user-card { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: start; gap: 8px 11px; }
+  .admin-user-info { min-width: 0; }
+  .admin-user-info > strong { overflow-wrap: anywhere; }
+  .admin-user-info > span { min-width: 0; overflow-wrap: anywhere; }
+  .admin-role { grid-column: 2; justify-self: start; margin-left: 0; }
+  .driver-passenger-info > strong { overflow-wrap: anywhere; }
+  .driver-passenger-actions > * { min-width: 0; white-space: normal; text-align: center; }
   .weekend-tour-card { grid-template-columns: 40px minmax(0, 1fr); gap: 10px; padding: 13px; }
   .weekend-tour-icon { width: 40px; height: 40px; }
   .weekend-tour-actions { grid-column: 1 / -1; }

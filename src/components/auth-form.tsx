@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, BusFront, LoaderCircle } from "lucide-react";
+import { ArrowLeft, LoaderCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/configured";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,14 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="auth-title">
         <Link href="/" className="back-link"><ArrowLeft size={18} /> Volver al inicio</Link>
-        <div className="auth-brand-icon" aria-hidden="true"><BusFront size={27} strokeWidth={2.2} /></div>
+        <Image
+          className="auth-brand-van"
+          src="/chevrolet-n400.png"
+          alt="Van Chevrolet N400 blanca"
+          width={923}
+          height={1024}
+          priority
+        />
         <p className="eyebrow">TRANSPORTE ISABEL LÓPEZ</p>
         <h1 id="auth-title">{copy.title}</h1>
         <p className="auth-subtitle">{copy.subtitle}</p>

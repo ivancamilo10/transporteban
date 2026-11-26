@@ -74,7 +74,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .auth-page { min-height: 100dvh; padding: 24px 16px calc(24px + var(--safe-bottom)); display: grid; place-items: center; }
 .auth-card { width: min(100%, 460px); padding: 30px; border: 1px solid #e5edf8; border-radius: 24px; background: #fff; box-shadow: 0 20px 60px #0b2e6f12; }
 .auth-card .brand-mark { margin: 30px 0 17px; width: 50px; height: 50px; }
-.auth-brand-icon { width: 50px; height: 50px; display: grid; place-items: center; margin: 30px 0 17px; border-radius: 16px; background: var(--brand-pale); color: var(--brand); }
+.auth-brand-van { display: block; width: 82px; height: 91px; object-fit: contain; margin: 20px 0 14px; }
 .back-link { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; color: #546b8b; font-weight: 650; }
 .auth-card h1 { color: var(--brand-dark); font-size: 32px; letter-spacing: -.04em; margin: 0; }
 .auth-subtitle { color: #657b99; line-height: 1.55; margin: 9px 0 24px; }
@@ -260,7 +260,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .pillars { grid-template-columns: 1fr; width: calc(100% - 40px); gap: 11px; margin-bottom: 36px; }
   .pillar { min-height: 82px; padding: 15px; }
   .auth-card { padding: 23px 20px; }
-  .auth-brand-icon { margin-top: 23px; }
+  .auth-brand-van { margin-top: 16px; }
 }
 
 .driver-summary, .admin-counts { display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0; }

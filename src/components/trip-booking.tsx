@@ -323,28 +323,40 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
   }).length;
 
   async function releaseCurrentHold() {
-    if (supabase && selectedTrip && selectedSeat !== null) {
-      await supabase.rpc("release_my_trip_seat_hold", {
-        p_trip_id: selectedTrip.id,
-        p_seat_number: selectedSeat,
-      });
-    }
+    const tripToRelease = selectedTrip;
+    const seatToRelease = selectedSeat;
     setSelectedSeat(null);
     setHoldExpiresAt(null);
+    if (!supabase || !tripToRelease || seatToRelease === null) return;
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), tripRequestTimeoutMs);
+    try {
+      const { error } = await supabase.rpc("release_my_trip_seat_hold", {
+        p_trip_id: tripToRelease.id,
+        p_seat_number: seatToRelease,
+      }).abortSignal(controller.signal);
+      if (error) throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
 
-  async function changeSearch(change: () => void) {
-    await releaseCurrentHold();
+  function changeSearch(change: () => void) {
+    void releaseCurrentHold().catch(() => {
+      setMessage("No pudimos liberar el puesto anterior. Actualiza los puestos antes de volver a intentarlo.");
+    });
     setSelectedTrip(null);
     setStep(1);
-    setLoading(true);
     setMessage("");
     change();
   }
 
   async function chooseTrip(trip: Trip) {
     if (selectedTrip && selectedSeat !== null && selectedTrip.id !== trip.id) {
-      await releaseCurrentHold();
+      void releaseCurrentHold().catch(() => {
+        setMessage("No pudimos liberar el puesto anterior. Actualiza los puestos antes de volver a intentarlo.");
+      });
     }
     if (selectedTrip?.id !== trip.id) {
       setSelectedSeat(null);

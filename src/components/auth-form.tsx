@@ -10,7 +10,6 @@ import { z } from "zod";
 import { ArrowLeft, LoaderCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/configured";
-import { getPhoneLoginEmail } from "@/lib/phone-login";
 import { Button } from "@/components/ui/button";
 
 const schemas = {
@@ -77,36 +76,46 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       const supabase = createClient();
       if (mode === "register") {
         const input = schemas.register.parse(values);
-        const result = await supabase.auth.signUp({
-          email: input.email,
+        const response = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const result = await response.json() as { error?: string };
+        if (!response.ok) throw new Error(result.error ?? "No pudimos crear la cuenta.");
+
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: input.email.trim().toLowerCase(),
           password: input.password,
-          options: {
-            data: {
-              full_name: input.fullName,
-              phone: input.phone,
-            },
-          },
         });
-        if (result.error) throw result.error;
-        setMessage({
-          text: result.data.session
-            ? "Tu cuenta quedó lista. Ya puedes buscar tu próximo viaje."
-            : "Supabase todavía exige confirmar el correo. Desactiva «Confirm email» en Authentication → Providers → Email; después inicia sesión con estos datos.",
-          error: false,
-        });
-        if (result.data.session) router.push("/inicio");
+        if (signInError) {
+          setMessage({
+            text: "La cuenta se creó, pero no pudimos iniciar la sesión automáticamente. Entra con tu teléfono y contraseña.",
+            error: true,
+          });
+          return;
+        }
+        router.replace("/inicio");
+        router.refresh();
       } else if (mode === "login") {
         const input = schemas.login.parse(values);
-        const identifier = input.identifier;
-        const email = identifier.includes("@")
-          ? identifier.toLowerCase()
-          : getPhoneLoginEmail(identifier) ?? `${identifier.toLowerCase()}@transporteban.test`;
-        const result = await supabase.auth.signInWithPassword({
-          email,
-          password: input.password,
-        });
-        if (result.error) throw result.error;
-        router.push("/inicio");
+        const identifier = input.identifier.trim();
+        if (identifier.includes("@")) {
+          const result = await supabase.auth.signInWithPassword({
+            email: identifier.toLowerCase(),
+            password: input.password,
+          });
+          if (result.error) throw result.error;
+        } else {
+          const response = await fetch("/api/auth/phone-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: identifier, password: input.password }),
+          });
+          const result = await response.json() as { error?: string };
+          if (!response.ok) throw new Error(result.error ?? "No pudimos iniciar sesión.");
+        }
+        router.replace("/inicio");
         router.refresh();
       } else if (mode === "reset") {
         const input = schemas.reset.parse(values);
@@ -147,6 +156,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         <p className="eyebrow">TRANSPORTE ISABEL LÓPEZ</p>
         <h1 id="auth-title">{copy.title}</h1>
         <p className="auth-subtitle">{copy.subtitle}</p>
+        {mode === "register" && <p className="auth-subtitle">No tienes que verificar tu correo: al crear la cuenta entrarás automáticamente.</p>}
         <form className="auth-form" onSubmit={handleSubmit(submit)}>
           {mode === "register" && (
             <>

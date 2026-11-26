@@ -102,6 +102,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .my-trips-card { width: min(100%, 760px); }
 .booking-header { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .booking-profile { min-height: 44px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px; color: var(--brand); font-weight: 750; border-radius: 12px; background: var(--brand-pale); }
+.driver-header-actions { display: flex; align-items: center; gap: 8px; }
+.driver-header-actions button.booking-profile { border: 0; font: inherit; font-weight: 750; cursor: pointer; }
+.driver-header-actions button.booking-profile:disabled { opacity: .7; cursor: wait; }
 .booking-welcome { padding: 28px 0 16px; }
 .booking-welcome .eyebrow { margin-bottom: 8px; }
 .booking-welcome h1 { margin: 0; color: var(--brand-dark); font-size: clamp(26px, 5vw, 34px); letter-spacing: -.045em; }
@@ -241,6 +244,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .booking-header .brand { min-width: 0; gap: 7px; }
   .booking-header .brand > span:last-child { min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
   .booking-profile { flex: 0 0 auto; padding: 0 9px; white-space: nowrap; }
+  .driver-header-actions { gap: 5px; }
+  .driver-header-actions .booking-profile { min-height: 40px; padding: 0 7px; gap: 5px; font-size: 12px; }
   .booking-welcome { padding-top: 22px; }
   .route-fields { grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr); gap: 10px 8px; }
   .field select, .date-field input { min-width: 0; max-width: 100%; }

@@ -8,8 +8,8 @@ export default function HomePage() {
       <header className="topbar">
         <Link href="/" className="brand"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>Transporte Isabel López</span></Link>
         <nav className="top-links" aria-label="Acceso a tu cuenta">
-          <Link className="button button-quiet" href="/iniciar-sesion">Iniciar sesión</Link>
-          <Link className="button button-primary" href="/registro">Crear cuenta</Link>
+          <Link className="button button-primary" href="/iniciar-sesion">Iniciar sesión</Link>
+          <Link className="button button-secondary" href="/registro">Crear cuenta</Link>
         </nav>
       </header>
       <section className="hero md:grid-cols-2">
@@ -18,8 +18,8 @@ export default function HomePage() {
           <h1>Tu camino, <span>más sencillo.</span></h1>
           <p className="hero-copy">Viaja con confianza. Consulta horarios, elige tu puesto y reserva tu próximo viaje.</p>
           <div className="hero-actions">
-            <Link href="/registro" className="button button-primary">Empezar ahora <ArrowRight size={18} /></Link>
-            <Link href="/iniciar-sesion" className="button button-secondary">Ya tengo una cuenta</Link>
+            <Link href="/iniciar-sesion" className="button button-primary">Iniciar sesión <ArrowRight size={18} /></Link>
+            <Link href="/registro" className="button button-secondary">Empezar · Crear cuenta</Link>
           </div>
           <div className="route-pill"><MapPin size={17} /> ¡Tu mejor opción de transporte!</div>
         </div>

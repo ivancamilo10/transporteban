@@ -20,19 +20,22 @@ Aplicación mobile-first para administrar los viajes de una van en la ruta Isabe
    - `202611250006_saturday_half_day_schedule.sql`
    - `202611250007_weekend_sightseeing_routes.sql`
    - `202611250008_weekend_advance_booking.sql`
+   - `202611260001_phone_login.sql`
 3. En **Project Settings → API**, copia la URL del proyecto y la clave `anon` pública.
 4. En **Authentication → URL Configuration**, configura la URL local `http://localhost:3000` y, al desplegar, agrega también el dominio de Vercel a Site URL y Redirect URLs.
-5. Si no quieres verificar correo para el registro, abre **Authentication → Providers → Email** y desactiva **Confirm email**. La aplicación conserva la sesión en almacenamiento del navegador y cookies seguras del servidor.
+5. El registro confirma la cuenta en el servidor y abre la sesión automáticamente; no requiere desactivar la verificación de correo en Supabase.
 
 La primera migración crea perfiles, configuración, vehículo y plantillas; activa RLS y asigna automáticamente a cada registro el rol `passenger`. Semilla 26 salidas entre semana: Isabel López sale cada hora en punto de 5:00 a. m. a 5:00 p. m.; Sabanalarga sale cada hora y media de 5:30 a. m. a 5:30 p. m. El sábado el servicio termina al mediodía: última salida a las 12:00 p. m. desde Isabel López y a las 11:30 a. m. desde Sabanalarga. La aplicación genera viajes hasta 30 días adelante y permite reservar dentro de ese periodo. Los precios se dejan sin definir para que el conductor los configure; no se inventan tarifas.
 
 La segunda migración crea viajes, puestos y reservas; instala funciones transaccionales para tomar, confirmar y cancelar un puesto; publica cambios de puestos y viajes en Supabase Realtime; y genera los viajes de los próximos siete días. También configura `pg_cron` para renovar los viajes cada día y liberar puestos temporales vencidos cada minuto.
 
+La migración `202611260001_phone_login.sql` agrega una función privada para que el servidor busque las cuentas por teléfono sin exponer los correos. Si usas `setup.sql`, ya queda incluida; si usas migraciones, ejecútala después de las anteriores.
+
 La tercera migración agrega el rol administrador, permisos para que el conductor vea únicamente a pasajeros con reserva activa, y la acción segura para marcar el abordaje y liberar puestos si alguien no se presenta. Publica también los perfiles para actualizar el panel administrativo en tiempo real.
 
 La cuarta migración agrega lista de espera con reserva temporal automática del puesto liberado, avisos dentro de la app y recordatorios programados una hora antes, calificaciones de viajes finalizados, y almacenamiento seguro de las suscripciones Web Push. El service worker recibe y muestra notificaciones push cuando un emisor del servidor está configurado.
 
-La quinta migración actualiza las plantillas existentes y mueve los viajes futuros generados a los horarios corregidos, sin cambiar viajes pasados ni los horarios personalizados que no coinciden con la semilla anterior. La sexta separa los horarios entre semana y sábado, reprograma los viajes futuros del sábado hasta el mediodía y cancela las salidas posteriores que ya se hubieran generado. La séptima agrega paseos independientes desde Isabel López a Santa Marta, Cartagena o Santa Verónica, los sábados a la 1:00 p. m. (después del servicio local) y los domingos a las 6:00 a. m.; el precio queda sin definir. La octava abre reservas con hasta 30 días de anticipación y genera los viajes futuros; ejecútala para habilitar los paseos en una instalación existente. Si ya ejecutaste `setup.sql` o las migraciones hasta la 007, ejecuta solamente `202611250008_weekend_advance_booking.sql`; no vuelvas a ejecutar `setup.sql`.
+La quinta migración actualiza las plantillas existentes y mueve los viajes futuros generados a los horarios corregidos, sin cambiar viajes pasados ni los horarios personalizados que no coinciden con la semilla anterior. La sexta separa los horarios entre semana y sábado, reprograma los viajes futuros del sábado hasta el mediodía y cancela las salidas posteriores que ya se hubieran generado. La séptima agrega paseos independientes desde Isabel López a Santa Marta, Cartagena o Santa Verónica, los sábados a la 1:00 p. m. (después del servicio local) y los domingos a las 6:00 a. m.; el precio queda sin definir. La octava abre reservas con hasta 30 días de anticipación y genera los viajes futuros. Si ya ejecutaste las migraciones hasta la 007, ejecuta la 008 y después la nueva `202611260001_phone_login.sql`; si ejecutaste la 008 o `setup.sql`, ejecuta solamente la migración nueva. No vuelvas a ejecutar `setup.sql` en una base existente.
 
 ### Crear las cuentas de administrador y conductor
 
@@ -49,7 +52,7 @@ where id = (
 
 Desde `/admin`, el administrador crea la cuenta del conductor con nombre, teléfono y contraseña. El teléfono será su usuario de inicio de sesión. El registro público siempre crea pasajeros y no permite elevar roles. Si una contraseña se compartió públicamente, cámbiala antes de usarla.
 
-En el inicio de sesión puedes ingresar tu número de teléfono (con o sin espacios, guiones o paréntesis) o correo electrónico. Los teléfonos se resuelven internamente al dominio `.test`, que no recibe mensajes ni enlaces para recuperar contraseña; el administrador debe compartir la contraseña inicial directamente. Usa correos reales para las cuentas que necesiten recuperar contraseña.
+En el inicio de sesión puedes ingresar tu número de teléfono (con o sin espacios, guiones o paréntesis) o correo electrónico. El servidor usa `SUPABASE_SERVICE_ROLE_KEY` para resolver el teléfono sin exponer correos de las cuentas. El registro público conserva un correo real para recuperar la contraseña, pero no envía confirmación y autentica inmediatamente después de crear la cuenta.
 
 Para asignar manualmente el rol de conductor a una cuenta registrada:
 
@@ -78,7 +81,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-jwt
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` es la clave JWT privada `service_role`, solo se utiliza en el servidor para crear cuentas de conductores. Cópiala desde las API Keys del proyecto Supabase, no le pongas el prefijo `NEXT_PUBLIC_`, no la compartas ni la incluyas en Git y configúrala como variable privada en Vercel. Una clave `sb_secret_...` no reemplaza esta JWT para las operaciones de administración de Auth. Si alguna clave secreta se compartió públicamente, rótala desde Supabase antes de desplegar.
+`SUPABASE_SERVICE_ROLE_KEY` es la clave JWT privada `service_role`, solo se utiliza en el servidor para crear cuentas de pasajeros y conductores, y para iniciar sesión por teléfono sin exponer correos. Cópiala desde las API Keys del proyecto Supabase, no le pongas el prefijo `NEXT_PUBLIC_`, no la compartas ni la incluyas en Git y configúrala como variable privada en Vercel. Una clave `sb_secret_...` no reemplaza esta JWT para las operaciones de administración de Auth. Si alguna clave secreta se compartió públicamente, rótala desde Supabase antes de desplegar.
 
 Las notificaciones dentro de la app y los recordatorios programados funcionan con Supabase. El service worker y el registro de dispositivos preparan Web Push; para enviar notificaciones push fuera de la app también hace falta configurar un emisor de servidor y sus llaves VAPID.
 

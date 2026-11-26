@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, BusFront, CalendarDays, Check, Clock3, LoaderCircle, MapPin, MessageCircle, Users } from "lucide-react";
+import { AlertCircle, ArrowLeft, BusFront, CalendarDays, Check, Clock3, LoaderCircle, LogOut, MapPin, MessageCircle, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/configured";
+import { useRouter } from "next/navigation";
 
 type Trip = {
   id: string;
@@ -29,6 +30,7 @@ const tripsPerPage = 25;
 
 export function DriverDashboard({ driverName }: { driverName: string }) {
   const supabase = useMemo(() => isSupabaseConfigured() ? createClient() : null, []);
+  const router = useRouter();
   const [trips, setTrips] = useState<DriverTrip[]>([]);
   const [totalTrips, setTotalTrips] = useState(0);
   const [page, setPage] = useState(0);
@@ -39,6 +41,7 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
   );
   const [busyBookingId, setBusyBookingId] = useState("");
   const [notice, setNotice] = useState("");
+  const [signingOut, setSigningOut] = useState(false);
   const requestId = useRef(0);
 
   const loadTrips = useCallback(async () => {
@@ -173,6 +176,22 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
     setBusyBookingId("");
   }
 
+  async function signOut() {
+    if (!supabase) {
+      setErrorMessage("No pudimos cerrar sesión porque falta la conexión con Supabase.");
+      return;
+    }
+    setSigningOut(true);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setErrorMessage("No pudimos cerrar sesión. Inténtalo de nuevo.");
+      setSigningOut(false);
+      return;
+    }
+    router.replace("/iniciar-sesion");
+    router.refresh();
+  }
+
   const passengerCount = trips.reduce((count, trip) => count + trip.bookings.length, 0);
   const totalPages = Math.max(1, Math.ceil(totalTrips / tripsPerPage));
   const firstTripNumber = totalTrips ? page * tripsPerPage + 1 : 0;
@@ -187,7 +206,13 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
       <section className="my-trips-card">
         <header className="booking-header">
           <Link className="brand" href="/"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>Transporte Isabel López</span></Link>
-          <Link className="booking-profile" href="/"><ArrowLeft size={17} /> Inicio</Link>
+          <div className="driver-header-actions">
+            <Link className="booking-profile" href="/"><ArrowLeft size={17} /> Inicio</Link>
+            <button className="booking-profile" disabled={signingOut} onClick={() => void signOut()} type="button">
+              {signingOut ? <LoaderCircle className="spin" size={17} /> : <LogOut size={17} />}
+              {signingOut ? "Cerrando..." : "Cerrar sesión"}
+            </button>
+          </div>
         </header>
         <div className="booking-welcome">
           <p className="eyebrow">PANEL DEL CONDUCTOR</p>

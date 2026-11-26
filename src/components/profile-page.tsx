@@ -22,7 +22,7 @@ export function ProfilePage({ profile }: { profile: { fullName: string; phone: s
     <main className="app-shell">
       <section className="my-trips-card">
         <header className="booking-header">
-          <Link className="brand" href="/inicio"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>TransporteBan</span></Link>
+          <Link className="brand" href="/inicio"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>Transporte Isabel López</span></Link>
           <span className="booking-profile"><UserRound size={17} /> Mi perfil</span>
         </header>
         <div className="booking-welcome">

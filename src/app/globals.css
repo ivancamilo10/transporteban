@@ -62,12 +62,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .hero-copy { max-width: 500px; line-height: 1.65; color: #536b8e; font-size: 18px; margin: 22px 0 26px; }
 .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 .route-pill { display: inline-flex; gap: 8px; align-items: center; margin-top: 25px; padding: 10px 14px; border-radius: 999px; background: #fff; border: 1px solid #e3ecf9; color: var(--brand-dark); font-size: 14px; font-weight: 700; }
-.visual-card { min-height: 370px; border-radius: 34px; background: linear-gradient(155deg,#dceaff,#f6faff 64%,#e6f3ff); position: relative; overflow: hidden; display: grid; place-items: center; box-shadow: 0 18px 50px #0b2e6f12; }
-.visual-card:before, .visual-card:after { content: ""; position: absolute; width: 520px; height: 190px; border-radius: 50%; background: #b7d3fa; bottom: -123px; left: -60px; }
-.visual-card:after { width: 440px; height: 170px; background: #a6c8f6; left: 140px; bottom: -135px; }
-.sun { position: absolute; width: 58px; height: 58px; border-radius: 50%; background: #ffc21a; right: 58px; top: 52px; opacity: .9; }
-.road { position: absolute; height: 52px; left: -3%; right: -3%; bottom: 35px; background: #fff; transform: rotate(-5deg); border-top: 3px dashed #93b4e7; }
-.van-art { position: relative; z-index: 1; width: min(92%, 430px); filter: drop-shadow(0 20px 14px #0b2e6f22); }
+.visual-card { min-height: 370px; border-radius: 34px; background: #fff; position: relative; overflow: hidden; display: grid; place-items: center; box-shadow: 0 18px 50px #0b2e6f12; }
+.van-photo { position: relative; z-index: 1; width: min(100%, 500px); height: auto; max-height: 370px; object-fit: contain; }
 .pillars { width: min(1060px, calc(100% - 40px)); margin: 0 auto 60px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .pillar { min-height: 104px; padding: 20px; display: flex; align-items: center; gap: 15px; background: white; border: 1px solid #e7eef9; border-radius: 20px; box-shadow: 0 9px 28px #0b2e6f08; }
 .pillar-icon { width: 48px; height: 48px; flex: 0 0 auto; border-radius: 16px; display: grid; place-items: center; color: var(--brand); background: var(--brand-pale); }
@@ -126,6 +122,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .route-fields .date-field { grid-column: 1 / -1; }
 .field select { min-height: 52px; width: 100%; padding: 0 13px; border: 1px solid #d6e1f0; border-radius: 13px; background: #fff; color: var(--brand-dark); font-size: 16px; }
 .swap-button { width: 44px; height: 44px; margin-bottom: 4px; display: grid; place-items: center; color: var(--brand); background: var(--brand-pale); border: 1px solid #d2e2f8; border-radius: 14px; box-shadow: 0 2px 0 #d5e4f7, 0 5px 12px #0b2e6f0c; cursor: pointer; }
+.swap-button:disabled { opacity: .45; cursor: not-allowed; }
 .date-field input { color-scheme: light; }
 .schedule-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 26px 0 12px; }
 .schedule-heading h3 { margin: 0; color: var(--brand-dark); font-size: 18px; }
@@ -250,6 +247,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .hero-copy { font-size: 17px; margin: 17px 0 22px; }
   .hero-actions .button { width: 100%; }
   .visual-card { min-height: 270px; border-radius: 25px; }
+  .van-photo { max-height: 300px; }
   .pillars { grid-template-columns: 1fr; width: calc(100% - 40px); gap: 11px; margin-bottom: 36px; }
   .pillar { min-height: 82px; padding: 15px; }
   .auth-card { padding: 23px 20px; }

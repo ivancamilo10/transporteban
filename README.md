@@ -1,4 +1,4 @@
-# TransporteBan
+# Transporte Isabel López
 
 Aplicación mobile-first para administrar los viajes de una van en la ruta Isabel López ⇄ Sabanalarga, construida con Next.js 16 (cumple el requisito Next.js 14+), TypeScript, Tailwind y Supabase. Incluye registro con teléfono obligatorio, reservas en tiempo real, panel del conductor y administración de cuentas.
 
@@ -18,6 +18,7 @@ Aplicación mobile-first para administrar los viajes de una van en la ruta Isabe
    - `202611250004_waitlist_notifications_ratings.sql`
    - `202611250005_updated_departure_schedule.sql`
    - `202611250006_saturday_half_day_schedule.sql`
+   - `202611250007_weekend_sightseeing_routes.sql`
 3. En **Project Settings → API**, copia la URL del proyecto y la clave `anon` pública.
 4. En **Authentication → URL Configuration**, configura la URL local `http://localhost:3000` y, al desplegar, agrega también el dominio de Vercel a Site URL y Redirect URLs.
 5. Si no quieres verificar correo para el registro, abre **Authentication → Providers → Email** y desactiva **Confirm email**. La aplicación conserva la sesión en almacenamiento del navegador y cookies seguras del servidor.
@@ -30,22 +31,22 @@ La tercera migración agrega el rol administrador, permisos para que el conducto
 
 La cuarta migración agrega lista de espera con reserva temporal automática del puesto liberado, avisos dentro de la app y recordatorios programados una hora antes, calificaciones de viajes finalizados, y almacenamiento seguro de las suscripciones Web Push. El service worker recibe y muestra notificaciones push cuando un emisor del servidor está configurado.
 
-La quinta migración actualiza las plantillas existentes y mueve los viajes futuros generados a los horarios corregidos, sin cambiar viajes pasados ni los horarios personalizados que no coinciden con la semilla anterior. La sexta separa los horarios entre semana y sábado, reprograma los viajes futuros del sábado hasta el mediodía y cancela las salidas posteriores que ya se hubieran generado. Si ya ejecutaste `setup.sql` o las migraciones hasta la 005, ejecuta solamente `202611250006_saturday_half_day_schedule.sql`; no vuelvas a ejecutar `setup.sql`.
+La quinta migración actualiza las plantillas existentes y mueve los viajes futuros generados a los horarios corregidos, sin cambiar viajes pasados ni los horarios personalizados que no coinciden con la semilla anterior. La sexta separa los horarios entre semana y sábado, reprograma los viajes futuros del sábado hasta el mediodía y cancela las salidas posteriores que ya se hubieran generado. La séptima agrega el itinerario de paseo por Santa Marta, Cartagena y Santa Verónica desde Isabel López, los sábados a la 1:00 p. m. (después del servicio local) y los domingos a las 6:00 a. m.; el precio queda sin definir. Puedes ajustar esos horarios y precios en `trip_templates`. Si ya ejecutaste `setup.sql` o las migraciones hasta la 006, ejecuta solamente `202611250007_weekend_sightseeing_routes.sql`; no vuelvas a ejecutar `setup.sql`.
 
-### Crear la primera cuenta de administrador
+### Crear las cuentas de administrador y conductor
 
-El registro público nunca permite escoger un rol privilegiado. Desactiva primero **Confirm email** en Supabase, registra tu propia cuenta desde `/registro` e inicia sesión al menos una vez para crear el perfil. Luego asigna el rol desde SQL Editor:
+El registro público nunca permite escoger un rol privilegiado. No hay contraseñas predeterminadas en el repositorio. Crea la cuenta de administrador en Supabase Auth con el usuario/correo `admin@transporteban.test` y define su contraseña directamente en el panel privado de Supabase. Luego ejecuta:
 
 ```sql
 update public.profiles
-set role = 'admin'
+set role = 'admin', phone = '<teléfono del administrador>'
 where id = (
   select id from auth.users
-  where email = 'tu-correo@ejemplo.com'
+  where email = 'admin@transporteban.test'
 );
 ```
 
-No hay un usuario ni una contraseña de administrador predeterminados. Usa el correo y la contraseña que tú elegiste al registrarte; nunca compartas una contraseña inicial común. Desde `/admin`, el administrador crea directamente la cuenta del conductor con nombre, teléfono, usuario y contraseña inicial. El registro público siempre crea pasajeros y no permite elevar roles.
+Desde `/admin`, el administrador crea la cuenta del conductor con nombre, teléfono, usuario `conductor` y una contraseña definida en el formulario. Ingresa los teléfonos y las contraseñas directamente en la base de datos o el formulario privado, nunca en archivos públicos del repositorio. El registro público siempre crea pasajeros y no permite elevar roles. Si una contraseña se compartió públicamente, cámbiala antes de usarla.
 
 En el inicio de sesión puedes ingresar correo o usuario. Los usuarios creados desde `/admin` se resuelven internamente al dominio `.test`, que no recibe mensajes ni enlaces para recuperar contraseña; el administrador debe compartir la contraseña inicial directamente. Usa correos reales para las cuentas que necesiten recuperar contraseña.
 

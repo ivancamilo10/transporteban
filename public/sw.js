@@ -1,4 +1,4 @@
-const CACHE_NAME = "transporteban-static-v2";
+const CACHE_NAME = "transporteban-static-v3";
 const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -41,7 +41,7 @@ self.addEventListener("push", (event) => {
   } catch {
     payload = { body: event.data ? event.data.text() : "" };
   }
-  const title = payload.title || "TransporteBan";
+  const title = payload.title || "Transporte Isabel López";
   const options = {
     body: payload.body || "Tienes una novedad sobre tu viaje.",
     icon: "/icon.svg",

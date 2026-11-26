@@ -1,7 +1,7 @@
 {
-  "name": "TransporteBan",
-  "short_name": "TransporteBan",
-  "description": "Viaja con confianza entre Isabel López y Sabanalarga.",
+  "name": "Transporte Isabel López",
+  "short_name": "Transporte Isabel",
+  "description": "Viaja con confianza entre Isabel López y Sabanalarga y disfruta de los paseos de fin de semana.",
   "lang": "es-CO",
   "start_url": "/",
   "scope": "/",

@@ -5,8 +5,8 @@ import "@fontsource-variable/inter";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TransporteBan | Viaja con confianza",
-  description: "Tu mejor opción de transporte entre Isabel López y Sabanalarga.",
+  title: "Transporte Isabel López | Viaja con confianza",
+  description: "Transporte entre Isabel López y Sabanalarga, con paseos de fin de semana.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
 };

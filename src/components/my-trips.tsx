@@ -105,7 +105,7 @@ export function MyTrips({ passenger, currentTime }: { passenger: { id: string; f
     <main className="app-shell">
       <section className="my-trips-card">
         <header className="booking-header">
-          <Link className="brand" href="/"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>TransporteBan</span></Link>
+          <Link className="brand" href="/"><span className="brand-mark"><BusFront size={24} strokeWidth={2.2} /></span><span>Transporte Isabel López</span></Link>
           <Link className="booking-profile" href="/inicio"><ArrowLeft size={17} /> Buscar viaje</Link>
         </header>
         <div className="booking-welcome">

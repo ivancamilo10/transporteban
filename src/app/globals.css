@@ -284,7 +284,14 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .driver-summary, .admin-counts { display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
 .driver-summary > span, .admin-counts > span { min-height: 48px; display: inline-flex; align-items: center; gap: 9px; padding: 10px 14px; border: 1px solid #dce8f7; border-radius: 14px; background: #f5f9ff; color: var(--brand-dark); font-weight: 750; }
 .driver-summary svg, .admin-counts svg { color: var(--brand); }
+.driver-live-status { color: #647995 !important; }
+.driver-live-status i { width: 9px; height: 9px; border-radius: 50%; background: #e2a62b; }
+.driver-live-status.connected { color: #176b36 !important; }
+.driver-live-status.connected i { background: #20a45a; box-shadow: 0 0 0 3px #20a45a20; }
 .driver-trip-list, .admin-user-list { display: grid; gap: 16px; }
+.driver-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 0; color: #647995; font-size: 14px; font-weight: 700; }
+.driver-pagination > div { display: flex; gap: 8px; }
+.driver-pagination .button-secondary { min-height: 42px; }
 .driver-trip-card, .admin-driver-card { padding: 19px; border: 1px solid #e3ebf5; border-radius: 20px; background: #fff; box-shadow: 0 8px 24px #12345a0a; }
 .driver-trip-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
 .driver-trip-card .reservation-details { margin: 13px 0; }
@@ -330,6 +337,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .driver-passenger-actions > * { flex: 1; justify-content: center; }
   .driver-passenger-actions .status-tag { flex: initial; justify-content: flex-start; }
   .driver-trip-card, .admin-driver-card { padding: 15px; }
+  .driver-pagination { align-items: stretch; flex-direction: column; }
+  .driver-pagination > div > * { flex: 1; }
   .admin-driver-form { grid-template-columns: 1fr; }
   .admin-driver-form button { grid-column: auto; }
   .admin-user-card { align-items: flex-start; flex-wrap: wrap; }

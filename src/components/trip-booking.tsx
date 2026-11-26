@@ -740,20 +740,6 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                     <button className="button button-primary" onClick={() => chooseWeekendTour(7)} type="button">Ver domingo</button>
                   </div>
                 </section>
-                <label className="field boarding-point-search"><span>Punto de encuentro · {selectedOrigin}</span>
-                  <select value={selectedBoardingPointOption} onChange={(event) => {
-                    setBoardingPoint(event.target.value);
-                    setOtherBoardingPoint("");
-                    setFieldErrors((previous) => ({ ...previous, boardingPoint: "" }));
-                  }}>
-                    <option value="">Elige dónde te recogemos</option>
-                    {boardingPointOptions.map((point) => <option key={point} value={point}>{point}</option>)}
-                  </select>
-                  {boardingPoint === "Otros" && (
-                    <input placeholder="Escribe el punto de encuentro" value={otherBoardingPoint} onChange={(event) => setOtherBoardingPoint(event.target.value)} />
-                  )}
-                  {fieldErrors.boardingPoint && <small className="field-error">{fieldErrors.boardingPoint}</small>}
-                </label>
                 <div className="schedule-heading">
                   <div><h3>Horarios disponibles</h3><span>{formatLongDate(travelDate)}</span></div>
                   <button className="icon-text-button" onClick={() => void loadTrips()} type="button" aria-label="Actualizar horarios"><RefreshCw size={17} /> Actualizar</button>
@@ -863,7 +849,21 @@ export function TripBooking({ passenger }: { passenger: Passenger }) {
                     <input autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
                     {fieldErrors.phone && <small className="field-error">{fieldErrors.phone}</small>}
                   </label>
-                  <div className="selected-summary"><span>Punto de encuentro</span><b>{selectedBoardingPoint}</b></div>
+                  <label className="field boarding-point-search">
+                    <span>Punto de encuentro · {selectedOrigin}</span>
+                    <select value={selectedBoardingPointOption} onChange={(event) => {
+                      setBoardingPoint(event.target.value);
+                      setOtherBoardingPoint("");
+                      setFieldErrors((previous) => ({ ...previous, boardingPoint: "" }));
+                    }}>
+                      <option value="">Elige dónde te recogemos</option>
+                      {boardingPointOptions.map((point) => <option key={point} value={point}>{point}</option>)}
+                    </select>
+                    {boardingPoint === "Otros" && (
+                      <input placeholder="Escribe el punto de encuentro" value={otherBoardingPoint} onChange={(event) => setOtherBoardingPoint(event.target.value)} />
+                    )}
+                    {fieldErrors.boardingPoint && <small className="field-error">{fieldErrors.boardingPoint}</small>}
+                  </label>
                 </div>
                 <div className="booking-action-row">
                   <Button variant="secondary" onClick={() => setStep(1)}><ArrowLeft size={17} /> Atrás</Button>

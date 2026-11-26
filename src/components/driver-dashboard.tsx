@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, ArrowLeft, BusFront, CalendarDays, Check, Clock3, LoaderCircle, MapPin, MessageCircle, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/configured";
@@ -25,26 +25,33 @@ type Booking = {
 
 type Passenger = { id: string; full_name: string; phone: string };
 type DriverTrip = Trip & { bookings: Array<Booking & { passenger: Passenger | null }> };
+const tripsPerPage = 25;
 
 export function DriverDashboard({ driverName }: { driverName: string }) {
   const supabase = useMemo(() => isSupabaseConfigured() ? createClient() : null, []);
   const [trips, setTrips] = useState<DriverTrip[]>([]);
+  const [totalTrips, setTotalTrips] = useState(0);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(Boolean(supabase));
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
     supabase ? "" : "No hay conexión con Supabase. Revisa la configuración de la aplicación.",
   );
   const [busyBookingId, setBusyBookingId] = useState("");
   const [notice, setNotice] = useState("");
+  const requestId = useRef(0);
 
   const loadTrips = useCallback(async () => {
     if (!supabase) return;
-    const { data: tripData, error: tripError } = await supabase
+    const currentRequestId = ++requestId.current;
+    const { data: tripData, error: tripError, count } = await supabase
       .from("trips")
-      .select("id,origen,destino,fecha_salida,estado")
+      .select("id,origen,destino,fecha_salida,estado", { count: "exact" })
       .gte("fecha_salida", new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString())
       .order("fecha_salida", { ascending: true })
-      .limit(100);
+      .range(page * tripsPerPage, (page + 1) * tripsPerPage - 1);
 
+    if (currentRequestId !== requestId.current) return;
     if (tripError) {
       setErrorMessage("No pudimos cargar los viajes. Intenta actualizar la página.");
       setLoading(false);
@@ -52,6 +59,13 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
     }
 
     const tripRows = (tripData ?? []) as Trip[];
+    const tripCount = count ?? 0;
+    const lastPage = Math.max(0, Math.ceil(tripCount / tripsPerPage) - 1);
+    setTotalTrips(tripCount);
+    if (page > lastPage) {
+      setPage(lastPage);
+      return;
+    }
     if (!tripRows.length) {
       setTrips([]);
       setErrorMessage("");
@@ -66,6 +80,7 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
       .in("trip_id", tripIds)
       .or("estado.eq.confirmada,boarding_status.eq.no_se_presento");
 
+    if (currentRequestId !== requestId.current) return;
     if (bookingError) {
       setErrorMessage("No pudimos cargar la lista de pasajeros. Intenta actualizar la página.");
       setLoading(false);
@@ -74,18 +89,19 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
 
     const bookingRows = (bookingData ?? []) as Booking[];
     const passengerIds = Array.from(new Set(bookingRows.map((booking) => booking.passenger_id)));
-    let passengerRows: Passenger[] = [];
-    if (passengerIds.length) {
+    const passengerRows: Passenger[] = [];
+    for (let offset = 0; offset < passengerIds.length; offset += 100) {
       const { data, error } = await supabase
         .from("profiles")
         .select("id,full_name,phone")
-        .in("id", passengerIds);
+        .in("id", passengerIds.slice(offset, offset + 100));
+      if (currentRequestId !== requestId.current) return;
       if (error) {
         setErrorMessage("No pudimos cargar los datos de contacto de los pasajeros.");
         setLoading(false);
         return;
       }
-      passengerRows = (data ?? []) as Passenger[];
+      passengerRows.push(...(data ?? []) as Passenger[]);
     }
 
     const passengersById = new Map(passengerRows.map((passenger) => [passenger.id, passenger]));
@@ -102,7 +118,7 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
     })));
     setErrorMessage("");
     setLoading(false);
-  }, [supabase]);
+  }, [page, supabase]);
 
   // Supabase's asynchronous response updates the trip list after the request completes.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -110,13 +126,29 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
 
   useEffect(() => {
     if (!supabase) return;
+    let refreshTimeout: number | undefined;
     const channel = supabase
       .channel("driver-live-trip-bookings")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => { void loadTrips(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "trips" }, () => { void loadTrips(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "seats" }, () => { void loadTrips(); })
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "trips" }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "seats" }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, scheduleRefresh)
+      .subscribe((status) => {
+        const connected = status === "SUBSCRIBED";
+        setRealtimeConnected(connected);
+        if (connected) scheduleRefresh();
+      });
+    const fallbackRefresh = window.setInterval(() => { void loadTrips(); }, 30_000);
+    function scheduleRefresh() {
+      window.clearTimeout(refreshTimeout);
+      refreshTimeout = window.setTimeout(() => { void loadTrips(); }, 200);
+    }
+    return () => {
+      window.clearTimeout(refreshTimeout);
+      window.clearInterval(fallbackRefresh);
+      void supabase.removeChannel(channel);
+      setRealtimeConnected(false);
+    };
   }, [loadTrips, supabase]);
 
   async function updateBoarding(booking: Booking, status: "abordo" | "no_se_presento") {
@@ -142,6 +174,13 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
   }
 
   const passengerCount = trips.reduce((count, trip) => count + trip.bookings.length, 0);
+  const totalPages = Math.max(1, Math.ceil(totalTrips / tripsPerPage));
+  const firstTripNumber = totalTrips ? page * tripsPerPage + 1 : 0;
+  const lastTripNumber = Math.min((page + 1) * tripsPerPage, totalTrips);
+  const goToPage = (nextPage: number) => {
+    setLoading(true);
+    setPage(Math.max(0, Math.min(totalPages - 1, nextPage)));
+  };
 
   return (
     <main className="app-shell">
@@ -156,8 +195,11 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
           <p>Pasajeros con reserva en tus próximos viajes. La lista se actualiza al instante.</p>
         </div>
         <div className="driver-summary">
-          <span><CalendarDays size={20} /> {trips.length} viajes próximos</span>
-          <span><Users size={20} /> {passengerCount} pasajeros</span>
+          <span><CalendarDays size={20} /> {totalTrips} viajes próximos</span>
+          <span><Users size={20} /> {passengerCount} pasajeros en esta página</span>
+          <span className={`driver-live-status ${realtimeConnected ? "connected" : ""}`} role="status">
+            <i /> {realtimeConnected ? "En tiempo real" : "Actualiza cada 30 s"}
+          </span>
         </div>
         {notice && <p className="form-message success" role="status">{notice}</p>}
         {errorMessage && <p className="form-message error" role="alert"><AlertCircle size={18} /> {errorMessage}</p>}
@@ -166,55 +208,73 @@ export function DriverDashboard({ driverName }: { driverName: string }) {
         ) : trips.length === 0 ? (
           <div className="empty-state"><div className="empty-icon"><CalendarDays size={25} /></div><h2>No hay viajes próximos</h2><p>Cuando se generen nuevos horarios, verás aquí las reservas y los datos de cada pasajero.</p></div>
         ) : (
-          <div className="driver-trip-list">
-            {trips.map((trip) => {
-              const tripCancelled = trip.estado === "cancelado";
-              return (
-                <article className="driver-trip-card" key={trip.id}>
-                <div className="driver-trip-heading">
-                  <div className="reservation-route"><span>{trip.origen}</span><b>→</b><span>{trip.destino}</span></div>
-                  <span className={`status-tag ${tripCancelled ? "cancelled" : "confirmed"}`}><i /> {trip.estado.replaceAll("_", " ")}</span>
-                </div>
-                <div className="reservation-details">
-                  <span><CalendarDays size={17} /> {formatTripDate(trip.fecha_salida)}</span>
-                  <span><Clock3 size={17} /> {formatTripTime(trip.fecha_salida)}</span>
-                  <span><Users size={17} /> {trip.bookings.length} pasajeros</span>
-                </div>
-                {trip.bookings.length === 0 ? (
-                  <p className="driver-empty-passengers">Todavía no hay pasajeros reservados para este viaje.</p>
-                ) : (
-                  <div className="driver-passenger-list">
-                    {trip.bookings.map((booking) => (
-                      <div className="driver-passenger" key={booking.id}>
-                        <div className="driver-passenger-info">
-                          <span className="seat-pill">Puesto {booking.seat_number}</span>
-                          <strong>{booking.passenger?.full_name ?? "Pasajero"}</strong>
-                          <span>{booking.passenger?.phone ?? "Teléfono no disponible"}</span>
-                          <small><MapPin size={14} /> {booking.punto_de_abordaje}</small>
-                        </div>
-                        <div className="driver-passenger-actions">
-                          {booking.passenger && booking.passenger.phone && <a className="button button-whatsapp" href={whatsappUrl(booking.passenger.phone, booking.passenger.full_name, booking, trip)} target="_blank" rel="noreferrer"><MessageCircle size={17} /> WhatsApp</a>}
-                          {!tripCancelled && booking.boarding_status === "pendiente" ? (
-                            <>
-                              <button className="button button-primary" type="button" disabled={busyBookingId === booking.id} onClick={() => void updateBoarding(booking, "abordo")}>
-                                {busyBookingId === booking.id ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />} Abordó
-                              </button>
-                              <button className="button button-secondary" type="button" disabled={busyBookingId === booking.id} onClick={() => void updateBoarding(booking, "no_se_presento")}>No se presentó</button>
-                            </>
-                          ) : tripCancelled ? (
-                            <span className="status-tag cancelled"><i /> Viaje cancelado</span>
-                          ) : (
-                            <span className={`status-tag ${booking.boarding_status === "abordo" ? "confirmed" : "cancelled"}`}><i /> {booking.boarding_status === "abordo" ? "Abordó" : "No se presentó"}</span>
-                          )}
-                        </div>
+          <>
+            <div className="driver-pagination" aria-label="Paginación de viajes">
+              <span>Viajes {firstTripNumber}–{lastTripNumber} de {totalTrips} · página {page + 1} de {totalPages}</span>
+              <div>
+                <button className="button-secondary" disabled={page === 0 || loading} onClick={() => goToPage(page - 1)} type="button">Anterior</button>
+                <button className="button-secondary" disabled={page >= totalPages - 1 || loading} onClick={() => goToPage(page + 1)} type="button">Siguiente</button>
+              </div>
+            </div>
+            <div className="driver-trip-list">
+              {trips.map((trip) => {
+                const tripCancelled = trip.estado === "cancelado";
+                return (
+                  <article className="driver-trip-card" key={trip.id}>
+                    <div className="driver-trip-heading">
+                      <div className="reservation-route"><span>{trip.origen}</span><b>→</b><span>{trip.destino}</span></div>
+                      <span className={`status-tag ${tripCancelled ? "cancelled" : "confirmed"}`}><i /> {trip.estado.replaceAll("_", " ")}</span>
+                    </div>
+                    <div className="reservation-details">
+                      <span><CalendarDays size={17} /> {formatTripDate(trip.fecha_salida)}</span>
+                      <span><Clock3 size={17} /> {formatTripTime(trip.fecha_salida)}</span>
+                      <span><Users size={17} /> {trip.bookings.length} pasajeros</span>
+                    </div>
+                    {trip.bookings.length === 0 ? (
+                      <p className="driver-empty-passengers">Todavía no hay pasajeros reservados para este viaje.</p>
+                    ) : (
+                      <div className="driver-passenger-list">
+                        {trip.bookings.map((booking) => (
+                          <div className="driver-passenger" key={booking.id}>
+                            <div className="driver-passenger-info">
+                              <span className="seat-pill">Puesto {booking.seat_number}</span>
+                              <strong>{booking.passenger?.full_name ?? "Pasajero"}</strong>
+                              <span>{booking.passenger?.phone ?? "Teléfono no disponible"}</span>
+                              <small><MapPin size={14} /> {booking.punto_de_abordaje}</small>
+                            </div>
+                            <div className="driver-passenger-actions">
+                              {booking.passenger && booking.passenger.phone && <a className="button button-whatsapp" href={whatsappUrl(booking.passenger.phone, booking.passenger.full_name, booking, trip)} target="_blank" rel="noreferrer"><MessageCircle size={17} /> WhatsApp</a>}
+                              {!tripCancelled && booking.boarding_status === "pendiente" ? (
+                                <>
+                                  <button className="button button-primary" type="button" disabled={busyBookingId === booking.id} onClick={() => void updateBoarding(booking, "abordo")}>
+                                    {busyBookingId === booking.id ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />} Abordó
+                                  </button>
+                                  <button className="button button-secondary" type="button" disabled={busyBookingId === booking.id} onClick={() => void updateBoarding(booking, "no_se_presento")}>No se presentó</button>
+                                </>
+                              ) : tripCancelled ? (
+                                <span className="status-tag cancelled"><i /> Viaje cancelado</span>
+                              ) : (
+                                <span className={`status-tag ${booking.boarding_status === "abordo" ? "confirmed" : "cancelled"}`}><i /> {booking.boarding_status === "abordo" ? "Abordó" : "No se presentó"}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-                </article>
-              );
-            })}
-          </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+            {totalPages > 1 && (
+              <div className="driver-pagination" aria-label="Paginación de viajes al final">
+                <span>Viajes {firstTripNumber}–{lastTripNumber} de {totalTrips}</span>
+                <div>
+                  <button className="button-secondary" disabled={page === 0 || loading} onClick={() => goToPage(page - 1)} type="button">Anterior</button>
+                  <button className="button-secondary" disabled={page >= totalPages - 1 || loading} onClick={() => goToPage(page + 1)} type="button">Siguiente</button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
     </main>

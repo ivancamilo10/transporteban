@@ -141,7 +141,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .schedule-heading span { display: block; margin-top: 5px; color: #6a7f9b; font-size: 14px; }
 .icon-text-button { min-height: 42px; padding: 0 8px; display: inline-flex; align-items: center; gap: 7px; color: var(--brand); border: 0; background: transparent; font-size: 14px; font-weight: 750; cursor: pointer; }
 .trip-list { display: grid; gap: 10px; }
-.trip-option { min-height: 78px; padding: 12px 14px; display: grid; grid-template-columns: 70px minmax(0,1fr) auto 20px; align-items: center; gap: 8px 10px; border: 1px solid #e2eaf5; border-radius: 16px; text-align: left; background: #fff; color: inherit; box-shadow: 0 2px 5px #0b2e6f08; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+.trip-option { min-height: 78px; padding: 12px 14px; display: grid; grid-template-columns: max-content minmax(0,1fr) auto 20px; align-items: center; gap: 8px 10px; border: 1px solid #e2eaf5; border-radius: 16px; text-align: left; background: #fff; color: inherit; box-shadow: 0 2px 5px #0b2e6f08; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
 .trip-option:hover, .trip-option.selected { border-color: #83a9e8; background: #f7faff; box-shadow: 0 5px 16px #1558d610; }
 .trip-option.selected { border-color: #57b879; background: #eaf8ef; box-shadow: inset 0 0 0 1px #57b879, 0 5px 16px #16803a18; }
 .trip-option.selected .trip-time, .trip-option.selected .trip-route { color: #176b36; }
